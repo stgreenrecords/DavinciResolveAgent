@@ -1,0 +1,50 @@
+{
+  "summary": "Increase saturation and contrast, adjust temperature and tint slightly, lift shadows, reduce highlights, and tweak gain wheel for better color balance.",
+  "actions": [
+    {
+      "type": "set_slider",
+      "target": "saturation_slider",
+      "delta": 20,
+      "reason": "Increase saturation to match reference vibrancy"
+    },
+    {
+      "type": "set_slider",
+      "target": "contrast_slider",
+      "delta": 0.3,
+      "reason": "Increase contrast for better dynamic range"
+    },
+    {
+      "type": "set_slider",
+      "target": "temperature_slider",
+      "delta": 500,
+      "reason": "Warm image to match reference tone"
+    },
+    {
+      "type": "set_slider",
+      "target": "tint_slider",
+      "delta": 10,
+      "reason": "Adjust tint for color accuracy"
+    },
+    {
+      "type": "set_slider",
+      "target": "shadows_slider",
+      "delta": 15,
+      "reason": "Lift shadows for detail"
+    },
+    {
+      "type": "set_slider",
+      "target": "highlights_slider",
+      "delta": -20,
+      "reason": "Reduce highlights to recover details"
+    },
+    {
+      "type": "drag",
+      "target": "gain_wheel",
+      "dx": 10,
+      "dy": -10,
+      "reason": "Adjust gain wheel for color balance"
+    }
+  ],
+  "stop": false,
+  "confidence": 0.85
+}

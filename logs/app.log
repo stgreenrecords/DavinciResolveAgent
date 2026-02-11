@@ -1,0 +1,169 @@
+2026-02-11 20:15:36,010 INFO app.ui: Settings saved
+2026-02-11 20:15:40,050 INFO app.ui: Settings loaded
+2026-02-11 20:15:40,150 INFO app.ui: Settings saved
+2026-02-11 20:15:40,152 INFO app.llm: LLM models request: https://api.openai.com/v1/models
+2026-02-11 20:15:40,963 INFO app.llm: LLM models response status 200
+2026-02-11 20:15:40,964 INFO app.llm: LLM models response count: 115
+2026-02-11 20:15:40,966 INFO app.ui: Models refreshed: 115 available
+2026-02-11 20:15:53,120 INFO app.ui: Settings saved
+2026-02-11 20:15:53,122 INFO app.llm: LLM test connection request
+2026-02-11 20:15:53,763 INFO app.llm: LLM test response status 200
+2026-02-11 20:15:53,764 INFO app.llm: LLM test response body: {
+  "id": "chatcmpl-D89yjkre9qaY0uTk4rlXPKgml9NFs",
+  "object": "chat.completion",
+  "created": 1770837353,
+  "model": "gpt-4.1-mini-2025-04-14",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "OK",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 22,
+    "completion_tokens": 1,
+    "total_tokens": 23,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_75546bd1a7"
+}
+
+2026-02-11 20:15:55,361 INFO app.ui: Test connection OK: OK
+2026-02-11 20:16:00,314 INFO app.ui: Reference selected: C:\Users\Viach\Downloads\refference.png
+2026-02-11 20:16:08,254 INFO app.ui: Calibrated ROI: {'x': 465, 'y': 159, 'width': 852, 'height': 481}
+2026-02-11 20:16:08,254 INFO app.ui: Calibrated ROI: {'x': 465, 'y': 159, 'width': 852, 'height': 481}
+2026-02-11 20:16:16,451 INFO app.ui: Settings saved
+2026-02-11 20:16:16,461 INFO app.ui: Starting automation (continuous=False)
+2026-02-11 20:16:16,888 INFO app.ui: Requesting LLM actions
+2026-02-11 20:16:16,908 INFO app.llm: LLM payload size: 56493 bytes
+2026-02-11 20:16:16,908 INFO app.llm: LLM Full Prompt (System): You are controlling DaVinci Resolve color grading. Return ONLY a JSON object that matches this schema exactly (no extra keys, no markdown): {summary: string, actions: [{type: string, target: string, dx?: number, dy?: number, delta?: number, keys?: string[], reason: string}], stop: boolean, confidence: number}. Rules: summary and reason must be short strings; confidence must be 0.0-1.0. Coordinate system: origin is top-left of the screen; positive dx moves right, positive dy moves down. The 'target' field MUST be one of these calibration targets: color_boost, contrast_slider, gain_wheel, gamma_wheel, highlights_slider, hue_slider, lift_wheel, lum_mix, midtone_detail, offset_wheel, pivot_slider, roi_center, saturation_slider, shadows_slider, temperature_slider, tint_slider. Target Details & valid ranges: 'color_boost' (slider: Color Boost, Range: [-100, 100]); 'contrast_slider' (slider: Contrast Slider, Range: [0, 2]); 'gain_wheel' (wheel: Gain Wheel, Range: Unknown); 'gamma_wheel' (wheel: Gamma Wheel, Range: Unknown); 'highlights_slider' (slider: Highlights Slider, Range: [-100, 100]); 'hue_slider' (slider: Hue Slider, Range: [0, 100]); 'lift_wheel' (wheel: Lift Wheel, Range: Unknown); 'lum_mix' (slider: Lum Mix, Range: [0, 100]); 'midtone_detail' (slider: Midtone Detail, Range: [-100, 100]); 'offset_wheel' (wheel: Offset Wheel, Range: Unknown); 'pivot_slider' (slider: Pivot Slider, Range: [0, 1]); 'roi_center' (point: ROI center, Range: Unknown); 'saturation_slider' (slider: Saturation Slider, Range: [0, 100]); 'shadows_slider' (slider: Shadows Slider, Range: [-100, 100]); 'temperature_slider' (slider: Temperature Slider, Range: [-4000, 4000]); 'tint_slider' (slider: Tint Slider, Range: [-100, 100]). IMPORTANT: When suggesting an adjustment, specify the exact numeric value change (delta). Deltas should be calculated relative to the current state to reach a specific target value within the provided ranges. Consider the initial parameters provided in the current state to calculate precise values. USER INSTRUCTIONS: Follow standard color matching rules. DO NOT use 'roi_center' for adjusting sliders or wheels. Action Types:
+- 'drag': Use for color wheels or any relative movement. Requires dx (horizontal) and dy (vertical) in pixels. Typically 10-100px.
+- 'set_slider': Use for sliders (contrast, saturation, etc.). Requires delta (float). For example, if Saturation is 50 and you want 60, delta is +10.
+- 'keypress': Use for hotkeys. Requires keys (list of strings).
+If no action is needed to match the reference look, return an empty actions array and stop=true.
+2026-02-11 20:16:16,910 INFO app.llm: LLM Full Prompt (User Data Size): 56493 bytes
+2026-02-11 20:16:16,910 INFO app.llm: LLM request attempt 1
+2026-02-11 20:16:21,174 INFO app.llm: LLM response status 200
+2026-02-11 20:16:21,175 INFO app.llm: LLM response body: {
+  "id": "chatcmpl-D89z7Vag0yQmBRM0GMgNtKAErM2eB",
+  "object": "chat.completion",
+  "created": 1770837377,
+  "model": "gpt-4.1-mini-2025-04-14",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"summary\":\"Increase saturation and contrast, adjust temperature and tint slightly, lift shadows, reduce highlights, and tweak gain wheel for better color balance.\",\"actions\":[{\"type\":\"set_slider\",\"target\":\"saturation_slider\",\"delta\":20,\"reason\":\"Increase saturation to match reference vibrancy\"},{\"type\":\"set_slider\",\"target\":\"contrast_slider\",\"delta\":0.3,\"reason\":\"Increase contrast for better dynamic range\"},{\"type\":\"set_slider\",\"target\":\"temperature_slider\",\"delta\":500,\"reason\":\"Warm image to match reference tone\"},{\"type\":\"set_slider\",\"target\":\"tint_slider\",\"delta\":10,\"reason\":\"Adjust tint for color accuracy\"},{\"type\":\"set_slider\",\"target\":\"shadows_slider\",\"delta\":15,\"reason\":\"Lift shadows for detail\"},{\"type\":\"set_slider\",\"target\":\"highlights_slider\",\"delta\":-20,\"reason\":\"Reduce highlights to recover details\"},{\"type\":\"drag\",\"target\":\"gain_wheel\",\"dx\":10,\"dy\":-10,\"reason\":\"Adjust gain wheel for color balance\"}],\"stop\":false,\"confidence\":0.85}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 38041,
+    "completion_tokens": 213,
+    "total_tokens": 38254,
+    "prompt_tokens_details": {
+      "cached_tokens": 23680,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_75546bd1a7"
+}
+
+2026-02-11 20:16:21,179 INFO app.ui: Executing 3 actions
+2026-02-11 20:16:21,180 INFO app.ui: Executing action: type=set_slider target=saturation_slider dx=None dy=None delta=20 keys=None reason=Increase saturation to match reference vibrancy
+2026-02-11 20:16:21,180 INFO app.executor: Executing action: type=set_slider target=saturation_slider dx=None dy=None delta=20 keys=None reason=Increase saturation to match reference vibrancy
+2026-02-11 20:16:21,180 INFO app.ui: Moving to target: {'x': 899, 'y': 1980}
+2026-02-11 20:16:21,180 INFO app.executor: Moving to target: {'x': 899, 'y': 1980}
+2026-02-11 20:16:21,394 INFO app.ui: Adjusting slider 'saturation_slider' by dragging dx=149.20 (ratio=7.4600)
+2026-02-11 20:16:21,395 INFO app.executor: Adjusting slider 'saturation_slider' by dragging dx=149.20 (ratio=7.4600)
+2026-02-11 20:16:22,587 INFO app.ui: Executing action: type=set_slider target=contrast_slider dx=None dy=None delta=0.3 keys=None reason=Increase contrast for better dynamic range
+2026-02-11 20:16:22,588 INFO app.executor: Executing action: type=set_slider target=contrast_slider dx=None dy=None delta=0.3 keys=None reason=Increase contrast for better dynamic range
+2026-02-11 20:16:22,588 INFO app.ui: Moving to target: {'x': 855, 'y': 1465}
+2026-02-11 20:16:22,588 INFO app.executor: Moving to target: {'x': 855, 'y': 1465}
+2026-02-11 20:16:22,795 INFO app.ui: Adjusting slider 'contrast_slider' by dragging dx=228.70 (ratio=762.3300)
+2026-02-11 20:16:22,795 INFO app.executor: Adjusting slider 'contrast_slider' by dragging dx=228.70 (ratio=762.3300)
+2026-02-11 20:16:23,992 INFO app.ui: Executing action: type=set_slider target=temperature_slider dx=None dy=None delta=500 keys=None reason=Warm image to match reference tone
+2026-02-11 20:16:23,992 INFO app.executor: Executing action: type=set_slider target=temperature_slider dx=None dy=None delta=500 keys=None reason=Warm image to match reference tone
+2026-02-11 20:16:23,993 INFO app.ui: Moving to target: {'x': 322, 'y': 1465}
+2026-02-11 20:16:23,993 INFO app.executor: Moving to target: {'x': 322, 'y': 1465}
+2026-02-11 20:16:24,193 INFO app.ui: Adjusting slider 'temperature_slider' by dragging dx=76.10 (ratio=0.1522)
+2026-02-11 20:16:24,193 INFO app.executor: Adjusting slider 'temperature_slider' by dragging dx=76.10 (ratio=0.1522)
+2026-02-11 20:16:25,837 INFO app.ui: {
+  "summary": "Increase saturation and contrast, adjust temperature and tint slightly, lift shadows, reduce highlights, and tweak gain wheel for better color balance.",
+  "actions": [
+    {
+      "type": "set_slider",
+      "target": "saturation_slider",
+      "delta": 20,
+      "reason": "Increase saturation to match reference vibrancy"
+    },
+    {
+      "type": "set_slider",
+      "target": "contrast_slider",
+      "delta": 0.3,
+      "reason": "Increase contrast for better dynamic range"
+    },
+    {
+      "type": "set_slider",
+      "target": "temperature_slider",
+      "delta": 500,
+      "reason": "Warm image to match reference tone"
+    },
+    {
+      "type": "set_slider",
+      "target": "tint_slider",
+      "delta": 10,
+      "reason": "Adjust tint for color accuracy"
+    },
+    {
+      "type": "set_slider",
+      "target": "shadows_slider",
+      "delta": 15,
+      "reason": "Lift shadows for detail"
+    },
+    {
+      "type": "set_slider",
+      "target": "highlights_slider",
+      "delta": -20,
+      "reason": "Reduce highlights to recover details"
+    },
+    {
+      "type": "drag",
+      "target": "gain_wheel",
+      "dx": 10,
+      "dy": -10,
+      "reason": "Adjust gain wheel for color balance"
+    }
+  ],
+  "stop": false,
+  "confidence": 0.85
+}

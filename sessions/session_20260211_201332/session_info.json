@@ -1,0 +1,149 @@
+{
+  "settings": {
+    "model": "gpt-4.1-mini",
+    "endpoint": "https://api.openai.com/v1/chat/completions"
+  },
+  "calibration": {
+    "roi": {
+      "x": 464,
+      "y": 161,
+      "width": 852,
+      "height": 480
+    },
+    "screen_width": 852,
+    "screen_height": 480,
+    "targets": {
+      "temperature_slider": {
+        "x": 322,
+        "y": 1465
+      },
+      "tint_slider": {
+        "x": 590,
+        "y": 1465
+      },
+      "contrast_slider": {
+        "x": 855,
+        "y": 1465
+      },
+      "pivot_slider": {
+        "x": 1112,
+        "y": 1465
+      },
+      "midtone_detail": {
+        "x": 1368,
+        "y": 1465
+      },
+      "color_boost": {
+        "x": 194,
+        "y": 1980
+      },
+      "shadows_slider": {
+        "x": 430,
+        "y": 1980
+      },
+      "highlights_slider": {
+        "x": 664,
+        "y": 1980
+      },
+      "saturation_slider": {
+        "x": 899,
+        "y": 1980
+      },
+      "hue_slider": {
+        "x": 1135,
+        "y": 1980
+      },
+      "lum_mix": {
+        "x": 1372,
+        "y": 1980
+      },
+      "lift_wheel": {
+        "x": 204,
+        "y": 1694
+      },
+      "gamma_wheel": {
+        "x": 544,
+        "y": 1694
+      },
+      "gain_wheel": {
+        "x": 887,
+        "y": 1694
+      },
+      "offset_wheel": {
+        "x": 1230,
+        "y": 1694
+      },
+      "roi_center": {
+        "x": 890,
+        "y": 401
+      }
+    },
+    "control_metadata": {
+      "temperature_slider": {
+        "type": "slider",
+        "description": "Temperature Slider"
+      },
+      "tint_slider": {
+        "type": "slider",
+        "description": "Tint Slider"
+      },
+      "contrast_slider": {
+        "type": "slider",
+        "description": "Contrast Slider"
+      },
+      "pivot_slider": {
+        "type": "slider",
+        "description": "Pivot Slider"
+      },
+      "midtone_detail": {
+        "type": "slider",
+        "description": "Midtone Detail"
+      },
+      "color_boost": {
+        "type": "slider",
+        "description": "Color Boost"
+      },
+      "shadows_slider": {
+        "type": "slider",
+        "description": "Shadows Slider"
+      },
+      "highlights_slider": {
+        "type": "slider",
+        "description": "Highlights Slider"
+      },
+      "saturation_slider": {
+        "type": "slider",
+        "description": "Saturation Slider"
+      },
+      "hue_slider": {
+        "type": "slider",
+        "description": "Hue Slider"
+      },
+      "lum_mix": {
+        "type": "slider",
+        "description": "Lum Mix"
+      },
+      "lift_wheel": {
+        "type": "wheel",
+        "description": "Lift Wheel"
+      },
+      "gamma_wheel": {
+        "type": "wheel",
+        "description": "Gamma Wheel"
+      },
+      "gain_wheel": {
+        "type": "wheel",
+        "description": "Gain Wheel"
+      },
+      "offset_wheel": {
+        "type": "wheel",
+        "description": "Offset Wheel"
+      },
+      "roi_center": {
+        "type": "point",
+        "description": "ROI center"
+      }
+    }
+  },
+  "timestamp": "20260211_201332"
+}

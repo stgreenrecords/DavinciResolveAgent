@@ -1,0 +1,39 @@
+{
+  "summary": "Increase warmth, saturation, contrast, lift, and gain.",
+  "actions": [
+    {
+      "type": "set_slider",
+      "target": "saturation_slider",
+      "delta": 30,
+      "reason": "Increase saturation for vivid colors."
+    },
+    {
+      "type": "set_slider",
+      "target": "contrast_slider",
+      "delta": 0.5,
+      "reason": "Increase contrast for stronger image depth."
+    },
+    {
+      "type": "set_slider",
+      "target": "temperature_slider",
+      "delta": 1500,
+      "reason": "Increase temperature for warmer tones."
+    },
+    {
+      "type": "drag",
+      "target": "lift_wheel",
+      "dx": 30,
+      "dy": -30,
+      "reason": "Increase lift for brighter shadows and warmth."
+    },
+    {
+      "type": "drag",
+      "target": "gain_wheel",
+      "dx": 30,
+      "dy": -30,
+      "reason": "Increase gain for brighter highlights and warmth."
+    }
+  ],
+  "stop": false,
+  "confidence": 0.9
+}

@@ -1,0 +1,33 @@
+{
+  "summary": "Increase saturation and color boost; lift and gain wheels up for brightness and color.",
+  "actions": [
+    {
+      "type": "set_slider",
+      "target": "saturation_slider",
+      "delta": 0.3,
+      "reason": "Increase saturation"
+    },
+    {
+      "type": "set_slider",
+      "target": "color_boost",
+      "delta": 0.3,
+      "reason": "Increase color boost"
+    },
+    {
+      "type": "drag",
+      "target": "lift_wheel",
+      "dx": 0,
+      "dy": -40,
+      "reason": "Lift wheel up for color"
+    },
+    {
+      "type": "drag",
+      "target": "gain_wheel",
+      "dx": 0,
+      "dy": -40,
+      "reason": "Gain wheel up for brightness"
+    }
+  ],
+  "stop": false,
+  "confidence": 0.9
+}
