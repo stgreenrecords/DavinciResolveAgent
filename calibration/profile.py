@@ -11,25 +11,47 @@ class CalibrationProfile:
     screen_width: int
     screen_height: int
     targets: dict
-    control_metadata: dict | None = None  # Store control type info
+    control_metadata: dict | None = None
+    full_config: dict | None = None  # Store the full controllerConfig.json structure
 
     @staticmethod
-    def _load_coordinates() -> tuple[dict, dict]:
-        coord_path = Path(__file__).resolve().parent.parent / "coordinates.json"
-        if coord_path.exists():
+    def _load_coordinates() -> tuple[dict, dict, dict]:
+        config_path = Path(__file__).resolve().parent.parent / "controllerConfig.json"
+        if config_path.exists():
             try:
-                data = json.loads(coord_path.read_text())
+                data = json.loads(config_path.read_text())
                 flat_targets = {}
                 metadata = {}
-                for category, controls in data.items():
-                    ctype = "slider" if category == "sliders" else "wheel"
-                    for name, coords in controls.items():
-                        flat_targets[name] = {"x": coords["x"], "y": coords["y"]}
-                        metadata[name] = {"type": ctype, "description": name.replace("_", " ").title()}
-                return flat_targets, metadata
+                # Sliders
+                if "sliders" in data:
+                    for name, details in data["sliders"].items():
+                        if details.get("x") != "" and details.get("y") != "":
+                            flat_targets[name] = {"x": int(details["x"]), "y": int(details["y"])}
+                        metadata[name] = {
+                            "type": "slider",
+                            "description": name,
+                            "min": details.get("min"),
+                            "max": details.get("max"),
+                            "defaultValue": details.get("defaultValue")
+                        }
+                # Wheels
+                if "wheels" in data:
+                    for wheel_name, components in data["wheels"].items():
+                        for comp_name, details in components.items():
+                            target_name = f"{wheel_name}_{comp_name}"
+                            if details.get("x") != "" and details.get("y") != "":
+                                flat_targets[target_name] = {"x": int(details["x"]), "y": int(details["y"])}
+                            metadata[target_name] = {
+                                "type": "wheel_component",
+                                "description": f"{wheel_name} {comp_name}",
+                                "min": details.get("min"),
+                                "max": details.get("max"),
+                                "defaultValue": details.get("defaultValue")
+                            }
+                return flat_targets, metadata, data
             except Exception:
                 pass
-        return {}, {}
+        return {}, {}, {}
 
     @staticmethod
     def from_roi(roi: Roi, screen_size: tuple[int, int] | None = None) -> "CalibrationProfile":
@@ -38,7 +60,7 @@ class CalibrationProfile:
         center_x = roi.x + int(roi.width / 2)
         center_y = roi.y + int(roi.height / 2)
         
-        targets, metadata = CalibrationProfile._load_coordinates()
+        targets, metadata, full_config = CalibrationProfile._load_coordinates()
         targets["roi_center"] = {"x": center_x, "y": center_y}
         metadata["roi_center"] = {"type": "point", "description": "ROI center"}
 
@@ -47,7 +69,8 @@ class CalibrationProfile:
             screen_width=width,
             screen_height=height,
             targets=targets,
-            control_metadata=metadata
+            control_metadata=metadata,
+            full_config=full_config
         )
 
     def update_roi(self, roi: Roi):
@@ -64,6 +87,7 @@ class CalibrationProfile:
             "screen_height": self.screen_height,
             "targets": self.targets,
             "control_metadata": self.control_metadata or {},
+            "full_config": self.full_config or {},
         }
 
     @staticmethod
@@ -74,6 +98,7 @@ class CalibrationProfile:
             screen_height=data.get("screen_height", 0),
             targets=data.get("targets", {}),
             control_metadata=data.get("control_metadata", {}),
+            full_config=data.get("full_config", {}),
         )
         # Ensure roi_center is always present and updated based on current ROI
         if "x" in cp.roi and "y" in cp.roi:

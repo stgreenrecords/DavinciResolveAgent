@@ -1,0 +1,200 @@
+{
+  "sliders": {
+    "Temp": {
+      "x": "333",
+      "y": "1488",
+      "defaultValue": "0",
+      "min": "-4000",
+      "max": "4000"
+    },
+    "Tint": {
+      "x": "589",
+      "y": "1489",
+      "defaultValue": "0",
+      "min": "-100",
+      "max": "100"
+    },
+    "Contrast": {
+      "x": "847",
+      "y": "1486",
+      "defaultValue": "1",
+      "min": "0",
+      "max": "2"
+    },
+    "Pivot": {
+      "x": "1108",
+      "y": "1488",
+      "defaultValue": "0.435",
+      "min": "0",
+      "max": "1"
+    },
+    "Mid/Detail": {
+      "x": "1366",
+      "y": "1488",
+      "defaultValue": "0",
+      "min": "-100",
+      "max": "100"
+    },
+    "Color Boost": {
+      "x": "190",
+      "y": "2002",
+      "defaultValue": "0",
+      "min": "-100",
+      "max": "100"
+    },
+    "Shadows": {
+      "x": "424",
+      "y": "2007",
+      "defaultValue": "0",
+      "min": "-100",
+      "max": "100"
+    },
+    "Highlights": {
+      "x": "660",
+      "y": "2008",
+      "defaultValue": "0",
+      "min": "-100",
+      "max": "100"
+    },
+    "Saturation": {
+      "x": "895",
+      "y": "2007",
+      "defaultValue": "50",
+      "min": "0",
+      "max": "100"
+    },
+    "Hue": {
+      "x": "1129",
+      "y": "2008",
+      "defaultValue": "50",
+      "min": "0",
+      "max": "100"
+    },
+    "Lum Mix": {
+      "x": "1372",
+      "y": "2008",
+      "defaultValue": "100",
+      "min": "0",
+      "max": "100"
+    }
+  },
+  "wheels": {
+    "Lift": {
+      "white": {
+        "x": "115",
+        "y": "1890",
+        "defaultValue": "0",
+        "min": "-1",
+        "max": "1"
+      },
+      "red": {
+        "x": "172",
+        "y": "1891",
+        "defaultValue": "0",
+        "min": "-1",
+        "max": "1"
+      },
+      "green": {
+        "x": "229",
+        "y": "1893",
+        "defaultValue": "0",
+        "min": "-1",
+        "max": "1"
+      },
+      "blue": {
+        "x": "283",
+        "y": "1891",
+        "defaultValue": "0",
+        "min": "-1",
+        "max": "1"
+      }
+    },
+    "Gamma": {
+      "white": {
+        "x": "457",
+        "y": "1891",
+        "defaultValue": "0",
+        "min": "-1",
+        "max": "1"
+      },
+      "red": {
+        "x": "517",
+        "y": "1890",
+        "defaultValue": "0",
+        "min": "-1",
+        "max": "1"
+      },
+      "green": {
+        "x": "573",
+        "y": "1890",
+        "defaultValue": "0",
+        "min": "-1",
+        "max": "1"
+      },
+      "blue": {
+        "x": "631",
+        "y": "1891",
+        "defaultValue": "0",
+        "min": "-1",
+        "max": "1"
+      }
+    },
+    "Gain": {
+      "white": {
+        "x": "801",
+        "y": "1890",
+        "defaultValue": "1",
+        "min": "0.01",
+        "max": "16"
+      },
+      "red": {
+        "x": "856",
+        "y": "1891",
+        "defaultValue": "1",
+        "min": "0.01",
+        "max": "16"
+      },
+      "green": {
+        "x": "913",
+        "y": "1891",
+        "defaultValue": "1",
+        "min": "0.01",
+        "max": "16"
+      },
+      "blue": {
+        "x": "967",
+        "y": "1888",
+        "defaultValue": "1",
+        "min": "0.01",
+        "max": "16"
+      }
+    },
+    "Offset": {
+      "red": {
+        "x": "1153",
+        "y": "1891",
+        "defaultValue": "25",
+        "min": "-75",
+        "max": "125"
+      },
+      "green": {
+        "x": "1227",
+        "y": "1893",
+        "defaultValue": "25",
+        "min": "-75",
+        "max": "125"
+      },
+      "blue": {
+        "x": "1302",
+        "y": "1890",
+        "defaultValue": "25",
+        "min": "-75",
+        "max": "125"
+      }
+    }
+  },
+  "fullResetButton": {
+    "x": "1411",
+    "y": "1435"
+  }
+}

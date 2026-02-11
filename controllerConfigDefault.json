@@ -1,0 +1,200 @@
+{
+  "sliders":{
+    "Temp" : {
+      "x":"",
+      "y":"",
+      "defaultValue":"0",
+      "min":"-4000",
+      "max":"4000"
+    },
+    "Tint" : {
+      "x":"",
+      "y":"",
+      "defaultValue":"0",
+      "min":"-100",
+      "max":"100"
+    },
+    "Contrast" : {
+      "x":"",
+      "y":"",
+      "defaultValue":"1",
+      "min":"0",
+      "max":"2"
+    },
+    "Pivot" : {
+      "x":"",
+      "y":"",
+      "defaultValue":"0.435",
+      "min":"0",
+      "max":"1"
+    },
+    "Mid/Detail" : {
+      "x":"",
+      "y":"",
+      "defaultValue":"0",
+      "min":"-100",
+      "max":"100"
+    },
+    "Color Boost" : {
+      "x":"",
+      "y":"",
+      "defaultValue":"0",
+      "min":"-100",
+      "max":"100"
+    },
+    "Shadows" : {
+      "x":"",
+      "y":"",
+      "defaultValue":"0",
+      "min":"-100",
+      "max":"100"
+    },
+    "Highlights" : {
+      "x":"",
+      "y":"",
+      "defaultValue":"0",
+      "min":"-100",
+      "max":"100"
+    },
+    "Saturation" : {
+      "x":"",
+      "y":"",
+      "defaultValue":"50",
+      "min":"0",
+      "max":"100"
+    },
+    "Hue" : {
+      "x":"",
+      "y":"",
+      "defaultValue":"50",
+      "min":"0",
+      "max":"100"
+    },
+    "Lum Mix" : {
+      "x":"",
+      "y":"",
+      "defaultValue":"100",
+      "min":"0",
+      "max":"100"
+    }
+  },
+  "wheels":{
+    "Lift" : {
+      "white": {
+        "x":"",
+        "y":"",
+        "defaultValue":"0",
+        "min":"-1",
+        "max":"1"
+      },
+      "red": {
+        "x":"",
+        "y":"",
+        "defaultValue":"0",
+        "min":"-1",
+        "max":"1"
+      },
+      "green": {
+        "x":"",
+        "y":"",
+        "defaultValue":"0",
+        "min":"-1",
+        "max":"1"
+      },
+      "blue": {
+        "x":"",
+        "y":"",
+        "defaultValue":"0",
+        "min":"-1",
+        "max":"1"
+      }
+    },
+    "Gamma" : {
+      "white": {
+        "x":"",
+        "y":"",
+        "defaultValue":"0",
+        "min":"-1",
+        "max":"1"
+      },
+      "red": {
+        "x":"",
+        "y":"",
+        "defaultValue":"0",
+        "min":"-1",
+        "max":"1"
+      },
+      "green": {
+        "x":"",
+        "y":"",
+        "defaultValue":"0",
+        "min":"-1",
+        "max":"1"
+      },
+      "blue": {
+        "x":"",
+        "y":"",
+        "defaultValue":"0",
+        "min":"-1",
+        "max":"1"
+      }
+    },
+    "Gain" : {
+      "white": {
+        "x":"",
+        "y":"",
+        "defaultValue":"1",
+        "min":"0.01",
+        "max":"16"
+      },
+      "red": {
+        "x":"",
+        "y":"",
+        "defaultValue":"1",
+        "min":"0.01",
+        "max":"16"
+      },
+      "green": {
+        "x":"",
+        "y":"",
+        "defaultValue":"1",
+        "min":"0.01",
+        "max":"16"
+      },
+      "blue": {
+        "x":"",
+        "y":"",
+        "defaultValue":"1",
+        "min":"0.01",
+        "max":"16"
+      }
+    },
+    "Offset" : {
+      "red": {
+        "x":"",
+        "y":"",
+        "defaultValue":"25",
+        "min":"-75",
+        "max":"125"
+      },
+      "green": {
+        "x":"",
+        "y":"",
+        "defaultValue":"25",
+        "min":"-75",
+        "max":"125"
+      },
+      "blue": {
+        "x":"",
+        "y":"",
+        "defaultValue":"25",
+        "min":"-75",
+        "max":"125"
+      }
+    }
+  },
+  "fullResetButton": {
+    "x": "",
+    "y": ""
+  }
+}

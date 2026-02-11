@@ -29,7 +29,7 @@ ACTION_SCHEMA = {
                     "target": {"type": "string"},
                     "dx": {"type": "number"},
                     "dy": {"type": "number"},
-                    "delta": {"type": "number"},
+                    "value": {"type": "number"},
                     "keys": {"type": "array", "items": {"type": "string"}},
                     "reason": {"type": "string"},
                 },
@@ -59,6 +59,7 @@ class LlmRequestContext:
     metrics: SimilarityMetrics
     calibration: CalibrationProfile
     instructions: str | None = None
+    current_state: dict | None = None
 
 
 class LlmClient:
@@ -163,10 +164,24 @@ class LlmClient:
             "reference_image": ref_b64,
             "current_image": cur_b64,
             "metrics": ctx.metrics.__dict__,
-            "calibration": ctx.calibration.to_dict(),
             "allowed_actions": ["drag", "set_slider", "keypress"],
-            "user_instructions": ctx.instructions
+            "user_instructions": ctx.instructions,
+            "current_state": ctx.current_state or {},
+            "controls": []
         }
+        
+        for name, meta in ctx.calibration.control_metadata.items():
+            if name == "roi_center":
+                continue
+            instructions["controls"].append({
+                "name": name,
+                "type": meta.get("type"),
+                "description": meta.get("description"),
+                "min": meta.get("min"),
+                "max": meta.get("max"),
+                "defaultValue": meta.get("defaultValue")
+            })
+
         payload_text = json.dumps(instructions)
         self.logger.info("LLM payload size: %d bytes", len(payload_text.encode("utf-8")))
         target_names = sorted(ctx.calibration.targets.keys())
@@ -174,46 +189,36 @@ class LlmClient:
         
         # Add descriptions and ranges from metadata to help LLM understand what each target is
         detailed_targets = []
-        ranges = {
-            "temperature_slider": "[-4000, 4000]",
-            "tint_slider": "[-100, 100]",
-            "contrast_slider": "[0, 2]",
-            "pivot_slider": "[0, 1]",
-            "midtone_detail": "[-100, 100]",
-            "color_boost": "[-100, 100]",
-            "shadows_slider": "[-100, 100]",
-            "highlights_slider": "[-100, 100]",
-            "saturation_slider": "[0, 100]",
-            "hue_slider": "[0, 100]",
-            "lum_mix": "[0, 100]"
-        }
-        for name in target_names:
-            meta = ctx.calibration.control_metadata.get(name, {})
-            desc = meta.get("description", "")
+        for name, meta in ctx.calibration.control_metadata.items():
+            if name == "roi_center":
+                continue
+            desc = meta.get("description", name)
             ctype = meta.get("type", "")
-            crange = ranges.get(name, "Unknown")
-            detailed_targets.append(f"'{name}' ({ctype}: {desc}, Range: {crange})")
+            cmin = meta.get("min", "Unknown")
+            cmax = meta.get("max", "Unknown")
+            cdef = meta.get("defaultValue", "Unknown")
+            detailed_targets.append(f"'{name}' ({ctype}: {desc}, Range: [{cmin}, {cmax}], Default: {cdef})")
         detailed_target_hint = "; ".join(detailed_targets)
 
         prompt = (
             "You are controlling DaVinci Resolve color grading. "
             "Return ONLY a JSON object that matches this schema exactly (no extra keys, no markdown): "
             "{summary: string, actions: [{type: string, target: string, dx?: number, dy?: number, "
-            "delta?: number, keys?: string[], reason: string}], stop: boolean, confidence: number}. "
+            "value?: number, keys?: string[], reason: string}], stop: boolean, confidence: number}. "
             "Rules: summary and reason must be short strings; confidence must be 0.0-1.0. "
             "Coordinate system: origin is top-left of the screen; positive dx moves right, positive dy moves down. "
             f"The 'target' field MUST be one of these calibration targets: {target_hint}. "
             f"Target Details & valid ranges: {detailed_target_hint}. "
-            "IMPORTANT: When suggesting an adjustment, specify the exact numeric value change (delta). "
-            "Deltas should be calculated relative to the current state to reach a specific target value within the provided ranges. "
-            "Consider the initial parameters provided in the current state to calculate precise values. "
+            "The 'current_state' shows the current values of the controllers in Resolve. "
+            "Use these values as a baseline for your adjustments. "
             f"USER INSTRUCTIONS: {ctx.instructions if ctx.instructions else 'Follow standard color matching rules.'} "
             "DO NOT use 'roi_center' for adjusting sliders or wheels. "
             "Action Types:\n"
-            "- 'drag': Use for color wheels or any relative movement. Requires dx (horizontal) and dy (vertical) in pixels. Typically 10-100px.\n"
-            "- 'set_slider': Use for sliders (contrast, saturation, etc.). Requires delta (float). For example, if Saturation is 50 and you want 60, delta is +10.\n"
+            "- 'set_slider': RECOMMENDED for all sliders and wheel components (contrast, saturation, Lift red, Gain blue, etc.). YOU MUST provide the absolute 'value' to enter from the valid range. Deltas are not supported.\n"
+            "- 'drag': Use ONLY for color wheels or relative movement if a target does not have a defined numeric range. Requires dx (horizontal) and dy (vertical) in pixels. Typically 10-100px.\n"
             "- 'keypress': Use for hotkeys. Requires keys (list of strings).\n"
-            "If no action is needed to match the reference look, return an empty actions array and stop=true."
+            "If no action is needed to match the reference look, return an empty actions array and stop=true.\n"
+            "Note: The 'reason' field for each action should explicitly state the new target value (e.g., 'Set Gain_blue to 1.2 to warm highlights')."
         )
         if retry_hint:
             prompt = f"{prompt} {retry_hint}"
@@ -296,7 +301,7 @@ class LlmClient:
                 if value is None:
                     value = raw_action.get("value")
                 if value is not None:
-                    normalized["delta"] = float(value)
+                    normalized["value"] = float(value)
             elif action_type == "drag":
                 normalized["target"] = raw_action.get("target") or "canvas"
                 start = params.get("start") or {}

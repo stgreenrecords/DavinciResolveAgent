@@ -1,24 +1,36 @@
-2026-02-11 20:15:36,010 INFO app.ui: Settings saved
-2026-02-11 20:15:40,050 INFO app.ui: Settings loaded
-2026-02-11 20:15:40,150 INFO app.ui: Settings saved
-2026-02-11 20:15:40,152 INFO app.llm: LLM models request: https://api.openai.com/v1/models
-2026-02-11 20:15:40,963 INFO app.llm: LLM models response status 200
-2026-02-11 20:15:40,964 INFO app.llm: LLM models response count: 115
-2026-02-11 20:15:40,966 INFO app.ui: Models refreshed: 115 available
-2026-02-11 20:15:53,120 INFO app.ui: Settings saved
-2026-02-11 20:15:53,122 INFO app.llm: LLM test connection request
-2026-02-11 20:15:53,763 INFO app.llm: LLM test response status 200
-2026-02-11 20:15:53,764 INFO app.llm: LLM test response body: {
-  "id": "chatcmpl-D89yjkre9qaY0uTk4rlXPKgml9NFs",
+2026-02-11 23:54:01,644 INFO app.ui: Settings loaded
+2026-02-11 23:54:01,745 INFO app.ui: Settings saved
+2026-02-11 23:54:01,747 INFO app.llm: LLM models request: https://api.openai.com/v1/models
+2026-02-11 23:54:02,530 INFO app.llm: LLM models response status 200
+2026-02-11 23:54:02,531 INFO app.llm: LLM models response count: 115
+2026-02-11 23:54:02,532 INFO app.ui: Models refreshed: 115 available
+2026-02-11 23:54:13,879 INFO app.ui: Reference selected: C:\Users\Viach\Downloads\refference.png
+2026-02-11 23:54:19,700 INFO app.ui: Calibrated ROI: {'x': 465, 'y': 161, 'width': 852, 'height': 482}
+2026-02-11 23:54:19,700 INFO app.ui: Calibrated ROI: {'x': 465, 'y': 161, 'width': 852, 'height': 482}
+2026-02-11 23:54:24,761 INFO app.ui: Settings saved
+2026-02-11 23:54:24,771 INFO app.ui: Starting automation (continuous=True)
+2026-02-11 23:54:25,170 INFO app.ui: Requesting LLM actions
+2026-02-11 23:54:25,189 INFO app.llm: LLM payload size: 58196 bytes
+2026-02-11 23:54:25,189 INFO app.llm: LLM Full Prompt (System): You are controlling DaVinci Resolve color grading. Return ONLY a JSON object that matches this schema exactly (no extra keys, no markdown): {summary: string, actions: [{type: string, target: string, dx?: number, dy?: number, value?: number, keys?: string[], reason: string}], stop: boolean, confidence: number}. Rules: summary and reason must be short strings; confidence must be 0.0-1.0. Coordinate system: origin is top-left of the screen; positive dx moves right, positive dy moves down. The 'target' field MUST be one of these calibration targets: Color Boost, Contrast, Gain_blue, Gain_green, Gain_red, Gain_white, Gamma_blue, Gamma_green, Gamma_red, Gamma_white, Highlights, Hue, Lift_blue, Lift_green, Lift_red, Lift_white, Lum Mix, Mid/Detail, Offset_blue, Offset_green, Offset_red, Pivot, Saturation, Shadows, Temp, Tint, roi_center. Target Details & valid ranges: 'Temp' (slider: Temp, Range: [-4000, 4000], Default: 0); 'Tint' (slider: Tint, Range: [-100, 100], Default: 0); 'Contrast' (slider: Contrast, Range: [0, 2], Default: 1); 'Pivot' (slider: Pivot, Range: [0, 1], Default: 0.435); 'Mid/Detail' (slider: Mid/Detail, Range: [-100, 100], Default: 0); 'Color Boost' (slider: Color Boost, Range: [-100, 100], Default: 0); 'Shadows' (slider: Shadows, Range: [-100, 100], Default: 0); 'Highlights' (slider: Highlights, Range: [-100, 100], Default: 0); 'Saturation' (slider: Saturation, Range: [0, 100], Default: 50); 'Hue' (slider: Hue, Range: [0, 100], Default: 50); 'Lum Mix' (slider: Lum Mix, Range: [0, 100], Default: 100); 'Lift_white' (wheel_component: Lift white, Range: [-1, 1], Default: 0); 'Lift_red' (wheel_component: Lift red, Range: [-1, 1], Default: 0); 'Lift_green' (wheel_component: Lift green, Range: [-1, 1], Default: 0); 'Lift_blue' (wheel_component: Lift blue, Range: [-1, 1], Default: 0); 'Gamma_white' (wheel_component: Gamma white, Range: [-1, 1], Default: 0); 'Gamma_red' (wheel_component: Gamma red, Range: [-1, 1], Default: 0); 'Gamma_green' (wheel_component: Gamma green, Range: [-1, 1], Default: 0); 'Gamma_blue' (wheel_component: Gamma blue, Range: [-1, 1], Default: 0); 'Gain_white' (wheel_component: Gain white, Range: [0.01, 16], Default: 1); 'Gain_red' (wheel_component: Gain red, Range: [0.01, 16], Default: 1); 'Gain_green' (wheel_component: Gain green, Range: [0.01, 16], Default: 1); 'Gain_blue' (wheel_component: Gain blue, Range: [0.01, 16], Default: 1); 'Offset_red' (wheel_component: Offset red, Range: [-75, 125], Default: 25); 'Offset_green' (wheel_component: Offset green, Range: [-75, 125], Default: 25); 'Offset_blue' (wheel_component: Offset blue, Range: [-75, 125], Default: 25). The 'current_state' shows the current values of the controllers in Resolve. Use these values as a baseline for your adjustments. USER INSTRUCTIONS: Follow standard color matching rules. DO NOT use 'roi_center' for adjusting sliders or wheels. Action Types:
+- 'set_slider': RECOMMENDED for all sliders and wheel components (contrast, saturation, Lift red, Gain blue, etc.). YOU MUST provide the absolute 'value' to enter from the valid range. Deltas are not supported.
+- 'drag': Use ONLY for color wheels or relative movement if a target does not have a defined numeric range. Requires dx (horizontal) and dy (vertical) in pixels. Typically 10-100px.
+- 'keypress': Use for hotkeys. Requires keys (list of strings).
+If no action is needed to match the reference look, return an empty actions array and stop=true.
+Note: The 'reason' field for each action should explicitly state the new target value (e.g., 'Set Gain_blue to 1.2 to warm highlights').
+2026-02-11 23:54:25,190 INFO app.llm: LLM Full Prompt (User Data Size): 58196 bytes
+2026-02-11 23:54:25,190 INFO app.llm: LLM request attempt 1
+2026-02-11 23:54:30,565 INFO app.llm: LLM response status 200
+2026-02-11 23:54:30,565 INFO app.llm: LLM response body: {
+  "id": "chatcmpl-D8DODJbECEhE5Z3MR2kaFZMRuc4RH",
   "object": "chat.completion",
-  "created": 1770837353,
+  "created": 1770850465,
   "model": "gpt-4.1-mini-2025-04-14",
   "choices": [
     {
       "index": 0,
       "message": {
         "role": "assistant",
-        "content": "OK",
+        "content": "{\"summary\":\"Increase contrast and saturation, warm temperature, adjust gain and lift for color balance.\",\"actions\":[{\"type\":\"set_slider\",\"target\":\"Temp\",\"value\":800,\"reason\":\"Set Temp to 800 to warm image tone\"},{\"type\":\"set_slider\",\"target\":\"Contrast\",\"value\":1.3,\"reason\":\"Set Contrast to 1.3 to enhance image contrast\"},{\"type\":\"set_slider\",\"target\":\"Saturation\",\"value\":65,\"reason\":\"Set Saturation to 65 to enrich colors\"},{\"type\":\"set_slider\",\"target\":\"Gain_red\",\"value\":1.2,\"reason\":\"Set Gain_red to 1.2 to boost red highlights\"},{\"type\":\"set_slider\",\"target\":\"Gain_blue\",\"value\":0.9,\"reason\":\"Set Gain_blue to 0.9 to reduce blue highlights\"},{\"type\":\"set_slider\",\"target\":\"Lift_red\",\"value\":0.1,\"reason\":\"Set Lift_red to 0.1 to lift red shadows\"},{\"type\":\"set_slider\",\"target\":\"Lift_blue\",\"value\":-0.1,\"reason\":\"Set Lift_blue to -0.1 to reduce blue shadows\"}],\"stop\":false,\"confidence\":0.85}",
         "refusal": null,
         "annotations": []
       },
@@ -27,9 +39,131 @@
     }
   ],
   "usage": {
-    "prompt_tokens": 22,
-    "completion_tokens": 1,
-    "total_tokens": 23,
+    "prompt_tokens": 38978,
+    "completion_tokens": 238,
+    "total_tokens": 39216,
+    "prompt_tokens_details": {
+      "cached_tokens": 24704,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_75546bd1a7"
+}
+
+2026-02-11 23:54:30,570 INFO app.ui: Executing 3 actions
+2026-02-11 23:54:30,570 INFO app.ui: Executing action: type=set_slider target=Temp dx=None dy=None keys=None reason=Set Temp to 800 to warm image tone
+2026-02-11 23:54:30,570 INFO app.executor: Executing action: type=set_slider target=Temp dx=None dy=None keys=None reason=Set Temp to 800 to warm image tone
+2026-02-11 23:54:30,571 INFO app.ui: Moving to target: {'x': 333, 'y': 1488}
+2026-02-11 23:54:30,571 INFO app.executor: Moving to target: {'x': 333, 'y': 1488}
+2026-02-11 23:54:30,783 INFO app.ui: Setting slider 'Temp' by typing value=800.0
+2026-02-11 23:54:30,783 INFO app.executor: Setting slider 'Temp' by typing value=800.0
+2026-02-11 23:54:31,647 INFO app.ui: [DEBUG] Typed value '800' for target 'Temp'
+2026-02-11 23:54:31,647 INFO app.executor: [DEBUG] Typed value '800' for target 'Temp'
+2026-02-11 23:54:32,036 INFO app.ui: Executing action: type=set_slider target=Contrast dx=None dy=None keys=None reason=Set Contrast to 1.3 to enhance image contrast
+2026-02-11 23:54:32,036 INFO app.executor: Executing action: type=set_slider target=Contrast dx=None dy=None keys=None reason=Set Contrast to 1.3 to enhance image contrast
+2026-02-11 23:54:32,036 INFO app.ui: Moving to target: {'x': 847, 'y': 1486}
+2026-02-11 23:54:32,037 INFO app.executor: Moving to target: {'x': 847, 'y': 1486}
+2026-02-11 23:54:32,256 INFO app.ui: Setting slider 'Contrast' by typing value=1.3
+2026-02-11 23:54:32,257 INFO app.executor: Setting slider 'Contrast' by typing value=1.3
+2026-02-11 23:54:33,119 INFO app.ui: [DEBUG] Typed value '1.3' for target 'Contrast'
+2026-02-11 23:54:33,120 INFO app.executor: [DEBUG] Typed value '1.3' for target 'Contrast'
+2026-02-11 23:54:33,507 INFO app.ui: Executing action: type=set_slider target=Saturation dx=None dy=None keys=None reason=Set Saturation to 65 to enrich colors
+2026-02-11 23:54:33,508 INFO app.executor: Executing action: type=set_slider target=Saturation dx=None dy=None keys=None reason=Set Saturation to 65 to enrich colors
+2026-02-11 23:54:33,508 INFO app.ui: Moving to target: {'x': 895, 'y': 2007}
+2026-02-11 23:54:33,508 INFO app.executor: Moving to target: {'x': 895, 'y': 2007}
+2026-02-11 23:54:33,732 INFO app.ui: Setting slider 'Saturation' by typing value=65.0
+2026-02-11 23:54:33,732 INFO app.executor: Setting slider 'Saturation' by typing value=65.0
+2026-02-11 23:54:34,600 INFO app.ui: [DEBUG] Typed value '65' for target 'Saturation'
+2026-02-11 23:54:34,600 INFO app.executor: [DEBUG] Typed value '65' for target 'Saturation'
+2026-02-11 23:54:35,407 INFO app.ui: {
+  "summary": "Increase contrast and saturation, warm temperature, adjust gain and lift for color balance.",
+  "actions": [
+    {
+      "type": "set_slider",
+      "target": "Temp",
+      "value": 800,
+      "reason": "Set Temp to 800 to warm image tone"
+    },
+    {
+      "type": "set_slider",
+      "target": "Contrast",
+      "value": 1.3,
+      "reason": "Set Contrast to 1.3 to enhance image contrast"
+    },
+    {
+      "type": "set_slider",
+      "target": "Saturation",
+      "value": 65,
+      "reason": "Set Saturation to 65 to enrich colors"
+    },
+    {
+      "type": "set_slider",
+      "target": "Gain_red",
+      "value": 1.2,
+      "reason": "Set Gain_red to 1.2 to boost red highlights"
+    },
+    {
+      "type": "set_slider",
+      "target": "Gain_blue",
+      "value": 0.9,
+      "reason": "Set Gain_blue to 0.9 to reduce blue highlights"
+    },
+    {
+      "type": "set_slider",
+      "target": "Lift_red",
+      "value": 0.1,
+      "reason": "Set Lift_red to 0.1 to lift red shadows"
+    },
+    {
+      "type": "set_slider",
+      "target": "Lift_blue",
+      "value": -0.1,
+      "reason": "Set Lift_blue to -0.1 to reduce blue shadows"
+    }
+  ],
+  "stop": false,
+  "confidence": 0.85
+}
+2026-02-11 23:54:36,806 INFO app.ui: Requesting LLM actions
+2026-02-11 23:54:36,826 INFO app.llm: LLM payload size: 60062 bytes
+2026-02-11 23:54:36,826 INFO app.llm: LLM Full Prompt (System): You are controlling DaVinci Resolve color grading. Return ONLY a JSON object that matches this schema exactly (no extra keys, no markdown): {summary: string, actions: [{type: string, target: string, dx?: number, dy?: number, value?: number, keys?: string[], reason: string}], stop: boolean, confidence: number}. Rules: summary and reason must be short strings; confidence must be 0.0-1.0. Coordinate system: origin is top-left of the screen; positive dx moves right, positive dy moves down. The 'target' field MUST be one of these calibration targets: Color Boost, Contrast, Gain_blue, Gain_green, Gain_red, Gain_white, Gamma_blue, Gamma_green, Gamma_red, Gamma_white, Highlights, Hue, Lift_blue, Lift_green, Lift_red, Lift_white, Lum Mix, Mid/Detail, Offset_blue, Offset_green, Offset_red, Pivot, Saturation, Shadows, Temp, Tint, roi_center. Target Details & valid ranges: 'Temp' (slider: Temp, Range: [-4000, 4000], Default: 0); 'Tint' (slider: Tint, Range: [-100, 100], Default: 0); 'Contrast' (slider: Contrast, Range: [0, 2], Default: 1); 'Pivot' (slider: Pivot, Range: [0, 1], Default: 0.435); 'Mid/Detail' (slider: Mid/Detail, Range: [-100, 100], Default: 0); 'Color Boost' (slider: Color Boost, Range: [-100, 100], Default: 0); 'Shadows' (slider: Shadows, Range: [-100, 100], Default: 0); 'Highlights' (slider: Highlights, Range: [-100, 100], Default: 0); 'Saturation' (slider: Saturation, Range: [0, 100], Default: 50); 'Hue' (slider: Hue, Range: [0, 100], Default: 50); 'Lum Mix' (slider: Lum Mix, Range: [0, 100], Default: 100); 'Lift_white' (wheel_component: Lift white, Range: [-1, 1], Default: 0); 'Lift_red' (wheel_component: Lift red, Range: [-1, 1], Default: 0); 'Lift_green' (wheel_component: Lift green, Range: [-1, 1], Default: 0); 'Lift_blue' (wheel_component: Lift blue, Range: [-1, 1], Default: 0); 'Gamma_white' (wheel_component: Gamma white, Range: [-1, 1], Default: 0); 'Gamma_red' (wheel_component: Gamma red, Range: [-1, 1], Default: 0); 'Gamma_green' (wheel_component: Gamma green, Range: [-1, 1], Default: 0); 'Gamma_blue' (wheel_component: Gamma blue, Range: [-1, 1], Default: 0); 'Gain_white' (wheel_component: Gain white, Range: [0.01, 16], Default: 1); 'Gain_red' (wheel_component: Gain red, Range: [0.01, 16], Default: 1); 'Gain_green' (wheel_component: Gain green, Range: [0.01, 16], Default: 1); 'Gain_blue' (wheel_component: Gain blue, Range: [0.01, 16], Default: 1); 'Offset_red' (wheel_component: Offset red, Range: [-75, 125], Default: 25); 'Offset_green' (wheel_component: Offset green, Range: [-75, 125], Default: 25); 'Offset_blue' (wheel_component: Offset blue, Range: [-75, 125], Default: 25). The 'current_state' shows the current values of the controllers in Resolve. Use these values as a baseline for your adjustments. USER INSTRUCTIONS: Increase contrast and saturation, warm temperature, adjust gain and lift for color balance. DO NOT use 'roi_center' for adjusting sliders or wheels. Action Types:
+- 'set_slider': RECOMMENDED for all sliders and wheel components (contrast, saturation, Lift red, Gain blue, etc.). YOU MUST provide the absolute 'value' to enter from the valid range. Deltas are not supported.
+- 'drag': Use ONLY for color wheels or relative movement if a target does not have a defined numeric range. Requires dx (horizontal) and dy (vertical) in pixels. Typically 10-100px.
+- 'keypress': Use for hotkeys. Requires keys (list of strings).
+If no action is needed to match the reference look, return an empty actions array and stop=true.
+Note: The 'reason' field for each action should explicitly state the new target value (e.g., 'Set Gain_blue to 1.2 to warm highlights').
+2026-02-11 23:54:36,826 INFO app.llm: LLM Full Prompt (User Data Size): 60062 bytes
+2026-02-11 23:54:36,827 INFO app.llm: LLM request attempt 1
+2026-02-11 23:54:42,903 INFO app.llm: LLM response status 200
+2026-02-11 23:54:42,903 INFO app.llm: LLM response body: {
+  "id": "chatcmpl-D8DOO6cv9INrc3D30e3eMThVRORPu",
+  "object": "chat.completion",
+  "created": 1770850476,
+  "model": "gpt-4.1-mini-2025-04-14",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"summary\":\"Increase contrast, saturation, warm temperature, adjust gain and lift for warm balanced look.\",\"actions\":[{\"type\":\"set_slider\",\"target\":\"Contrast\",\"value\":1.5,\"reason\":\"Set Contrast to 1.5 to increase contrast\"},{\"type\":\"set_slider\",\"target\":\"Saturation\",\"value\":70,\"reason\":\"Set Saturation to 70 to enhance color vibrancy\"},{\"type\":\"set_slider\",\"target\":\"Temp\",\"value\":1500,\"reason\":\"Set Temp to 1500 to warm the image\"},{\"type\":\"set_slider\",\"target\":\"Gain_red\",\"value\":1.2,\"reason\":\"Set Gain_red to 1.2 to warm highlights\"},{\"type\":\"set_slider\",\"target\":\"Gain_blue\",\"value\":0.9,\"reason\":\"Set Gain_blue to 0.9 to reduce blue highlights\"},{\"type\":\"set_slider\",\"target\":\"Lift_red\",\"value\":0.1,\"reason\":\"Set Lift_red to 0.1 to warm shadows\"},{\"type\":\"set_slider\",\"target\":\"Lift_blue\",\"value\":-0.1,\"reason\":\"Set Lift_blue to -0.1 to reduce blue shadows\"}],\"stop\":false,\"confidence\":0.9}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 40300,
+    "completion_tokens": 240,
+    "total_tokens": 40540,
     "prompt_tokens_details": {
       "cached_tokens": 0,
       "audio_tokens": 0
@@ -45,33 +179,102 @@
   "system_fingerprint": "fp_75546bd1a7"
 }
 
-2026-02-11 20:15:55,361 INFO app.ui: Test connection OK: OK
-2026-02-11 20:16:00,314 INFO app.ui: Reference selected: C:\Users\Viach\Downloads\refference.png
-2026-02-11 20:16:08,254 INFO app.ui: Calibrated ROI: {'x': 465, 'y': 159, 'width': 852, 'height': 481}
-2026-02-11 20:16:08,254 INFO app.ui: Calibrated ROI: {'x': 465, 'y': 159, 'width': 852, 'height': 481}
-2026-02-11 20:16:16,451 INFO app.ui: Settings saved
-2026-02-11 20:16:16,461 INFO app.ui: Starting automation (continuous=False)
-2026-02-11 20:16:16,888 INFO app.ui: Requesting LLM actions
-2026-02-11 20:16:16,908 INFO app.llm: LLM payload size: 56493 bytes
-2026-02-11 20:16:16,908 INFO app.llm: LLM Full Prompt (System): You are controlling DaVinci Resolve color grading. Return ONLY a JSON object that matches this schema exactly (no extra keys, no markdown): {summary: string, actions: [{type: string, target: string, dx?: number, dy?: number, delta?: number, keys?: string[], reason: string}], stop: boolean, confidence: number}. Rules: summary and reason must be short strings; confidence must be 0.0-1.0. Coordinate system: origin is top-left of the screen; positive dx moves right, positive dy moves down. The 'target' field MUST be one of these calibration targets: color_boost, contrast_slider, gain_wheel, gamma_wheel, highlights_slider, hue_slider, lift_wheel, lum_mix, midtone_detail, offset_wheel, pivot_slider, roi_center, saturation_slider, shadows_slider, temperature_slider, tint_slider. Target Details & valid ranges: 'color_boost' (slider: Color Boost, Range: [-100, 100]); 'contrast_slider' (slider: Contrast Slider, Range: [0, 2]); 'gain_wheel' (wheel: Gain Wheel, Range: Unknown); 'gamma_wheel' (wheel: Gamma Wheel, Range: Unknown); 'highlights_slider' (slider: Highlights Slider, Range: [-100, 100]); 'hue_slider' (slider: Hue Slider, Range: [0, 100]); 'lift_wheel' (wheel: Lift Wheel, Range: Unknown); 'lum_mix' (slider: Lum Mix, Range: [0, 100]); 'midtone_detail' (slider: Midtone Detail, Range: [-100, 100]); 'offset_wheel' (wheel: Offset Wheel, Range: Unknown); 'pivot_slider' (slider: Pivot Slider, Range: [0, 1]); 'roi_center' (point: ROI center, Range: Unknown); 'saturation_slider' (slider: Saturation Slider, Range: [0, 100]); 'shadows_slider' (slider: Shadows Slider, Range: [-100, 100]); 'temperature_slider' (slider: Temperature Slider, Range: [-4000, 4000]); 'tint_slider' (slider: Tint Slider, Range: [-100, 100]). IMPORTANT: When suggesting an adjustment, specify the exact numeric value change (delta). Deltas should be calculated relative to the current state to reach a specific target value within the provided ranges. Consider the initial parameters provided in the current state to calculate precise values. USER INSTRUCTIONS: Follow standard color matching rules. DO NOT use 'roi_center' for adjusting sliders or wheels. Action Types:
-- 'drag': Use for color wheels or any relative movement. Requires dx (horizontal) and dy (vertical) in pixels. Typically 10-100px.
-- 'set_slider': Use for sliders (contrast, saturation, etc.). Requires delta (float). For example, if Saturation is 50 and you want 60, delta is +10.
+2026-02-11 23:54:42,907 INFO app.ui: Executing 3 actions
+2026-02-11 23:54:42,908 INFO app.ui: Executing action: type=set_slider target=Contrast dx=None dy=None keys=None reason=Set Contrast to 1.5 to increase contrast
+2026-02-11 23:54:42,908 INFO app.executor: Executing action: type=set_slider target=Contrast dx=None dy=None keys=None reason=Set Contrast to 1.5 to increase contrast
+2026-02-11 23:54:42,908 INFO app.ui: Moving to target: {'x': 847, 'y': 1486}
+2026-02-11 23:54:42,908 INFO app.executor: Moving to target: {'x': 847, 'y': 1486}
+2026-02-11 23:54:43,122 INFO app.ui: Setting slider 'Contrast' by typing value=1.5
+2026-02-11 23:54:43,122 INFO app.executor: Setting slider 'Contrast' by typing value=1.5
+2026-02-11 23:54:43,987 INFO app.ui: [DEBUG] Typed value '1.5' for target 'Contrast'
+2026-02-11 23:54:43,987 INFO app.executor: [DEBUG] Typed value '1.5' for target 'Contrast'
+2026-02-11 23:54:44,377 INFO app.ui: Executing action: type=set_slider target=Saturation dx=None dy=None keys=None reason=Set Saturation to 70 to enhance color vibrancy
+2026-02-11 23:54:44,377 INFO app.executor: Executing action: type=set_slider target=Saturation dx=None dy=None keys=None reason=Set Saturation to 70 to enhance color vibrancy
+2026-02-11 23:54:44,378 INFO app.ui: Moving to target: {'x': 895, 'y': 2007}
+2026-02-11 23:54:44,378 INFO app.executor: Moving to target: {'x': 895, 'y': 2007}
+2026-02-11 23:54:44,599 INFO app.ui: Setting slider 'Saturation' by typing value=70.0
+2026-02-11 23:54:44,599 INFO app.executor: Setting slider 'Saturation' by typing value=70.0
+2026-02-11 23:54:45,465 INFO app.ui: [DEBUG] Typed value '70' for target 'Saturation'
+2026-02-11 23:54:45,465 INFO app.executor: [DEBUG] Typed value '70' for target 'Saturation'
+2026-02-11 23:54:45,848 INFO app.ui: Executing action: type=set_slider target=Temp dx=None dy=None keys=None reason=Set Temp to 1500 to warm the image
+2026-02-11 23:54:45,849 INFO app.executor: Executing action: type=set_slider target=Temp dx=None dy=None keys=None reason=Set Temp to 1500 to warm the image
+2026-02-11 23:54:45,849 INFO app.ui: Moving to target: {'x': 333, 'y': 1488}
+2026-02-11 23:54:45,849 INFO app.executor: Moving to target: {'x': 333, 'y': 1488}
+2026-02-11 23:54:46,055 INFO app.ui: Setting slider 'Temp' by typing value=1500.0
+2026-02-11 23:54:46,055 INFO app.executor: Setting slider 'Temp' by typing value=1500.0
+2026-02-11 23:54:46,922 INFO app.ui: [DEBUG] Typed value '1500' for target 'Temp'
+2026-02-11 23:54:46,922 INFO app.executor: [DEBUG] Typed value '1500' for target 'Temp'
+2026-02-11 23:54:47,761 INFO app.ui: {
+  "summary": "Increase contrast, saturation, warm temperature, adjust gain and lift for warm balanced look.",
+  "actions": [
+    {
+      "type": "set_slider",
+      "target": "Contrast",
+      "value": 1.5,
+      "reason": "Set Contrast to 1.5 to increase contrast"
+    },
+    {
+      "type": "set_slider",
+      "target": "Saturation",
+      "value": 70,
+      "reason": "Set Saturation to 70 to enhance color vibrancy"
+    },
+    {
+      "type": "set_slider",
+      "target": "Temp",
+      "value": 1500,
+      "reason": "Set Temp to 1500 to warm the image"
+    },
+    {
+      "type": "set_slider",
+      "target": "Gain_red",
+      "value": 1.2,
+      "reason": "Set Gain_red to 1.2 to warm highlights"
+    },
+    {
+      "type": "set_slider",
+      "target": "Gain_blue",
+      "value": 0.9,
+      "reason": "Set Gain_blue to 0.9 to reduce blue highlights"
+    },
+    {
+      "type": "set_slider",
+      "target": "Lift_red",
+      "value": 0.1,
+      "reason": "Set Lift_red to 0.1 to warm shadows"
+    },
+    {
+      "type": "set_slider",
+      "target": "Lift_blue",
+      "value": -0.1,
+      "reason": "Set Lift_blue to -0.1 to reduce blue shadows"
+    }
+  ],
+  "stop": false,
+  "confidence": 0.9
+}
+2026-02-11 23:54:49,224 INFO app.ui: Requesting LLM actions
+2026-02-11 23:54:49,249 INFO app.llm: LLM payload size: 62134 bytes
+2026-02-11 23:54:49,249 INFO app.llm: LLM Full Prompt (System): You are controlling DaVinci Resolve color grading. Return ONLY a JSON object that matches this schema exactly (no extra keys, no markdown): {summary: string, actions: [{type: string, target: string, dx?: number, dy?: number, value?: number, keys?: string[], reason: string}], stop: boolean, confidence: number}. Rules: summary and reason must be short strings; confidence must be 0.0-1.0. Coordinate system: origin is top-left of the screen; positive dx moves right, positive dy moves down. The 'target' field MUST be one of these calibration targets: Color Boost, Contrast, Gain_blue, Gain_green, Gain_red, Gain_white, Gamma_blue, Gamma_green, Gamma_red, Gamma_white, Highlights, Hue, Lift_blue, Lift_green, Lift_red, Lift_white, Lum Mix, Mid/Detail, Offset_blue, Offset_green, Offset_red, Pivot, Saturation, Shadows, Temp, Tint, roi_center. Target Details & valid ranges: 'Temp' (slider: Temp, Range: [-4000, 4000], Default: 0); 'Tint' (slider: Tint, Range: [-100, 100], Default: 0); 'Contrast' (slider: Contrast, Range: [0, 2], Default: 1); 'Pivot' (slider: Pivot, Range: [0, 1], Default: 0.435); 'Mid/Detail' (slider: Mid/Detail, Range: [-100, 100], Default: 0); 'Color Boost' (slider: Color Boost, Range: [-100, 100], Default: 0); 'Shadows' (slider: Shadows, Range: [-100, 100], Default: 0); 'Highlights' (slider: Highlights, Range: [-100, 100], Default: 0); 'Saturation' (slider: Saturation, Range: [0, 100], Default: 50); 'Hue' (slider: Hue, Range: [0, 100], Default: 50); 'Lum Mix' (slider: Lum Mix, Range: [0, 100], Default: 100); 'Lift_white' (wheel_component: Lift white, Range: [-1, 1], Default: 0); 'Lift_red' (wheel_component: Lift red, Range: [-1, 1], Default: 0); 'Lift_green' (wheel_component: Lift green, Range: [-1, 1], Default: 0); 'Lift_blue' (wheel_component: Lift blue, Range: [-1, 1], Default: 0); 'Gamma_white' (wheel_component: Gamma white, Range: [-1, 1], Default: 0); 'Gamma_red' (wheel_component: Gamma red, Range: [-1, 1], Default: 0); 'Gamma_green' (wheel_component: Gamma green, Range: [-1, 1], Default: 0); 'Gamma_blue' (wheel_component: Gamma blue, Range: [-1, 1], Default: 0); 'Gain_white' (wheel_component: Gain white, Range: [0.01, 16], Default: 1); 'Gain_red' (wheel_component: Gain red, Range: [0.01, 16], Default: 1); 'Gain_green' (wheel_component: Gain green, Range: [0.01, 16], Default: 1); 'Gain_blue' (wheel_component: Gain blue, Range: [0.01, 16], Default: 1); 'Offset_red' (wheel_component: Offset red, Range: [-75, 125], Default: 25); 'Offset_green' (wheel_component: Offset green, Range: [-75, 125], Default: 25); 'Offset_blue' (wheel_component: Offset blue, Range: [-75, 125], Default: 25). The 'current_state' shows the current values of the controllers in Resolve. Use these values as a baseline for your adjustments. USER INSTRUCTIONS: Increase contrast, saturation, warm temperature, adjust gain and lift for warm balanced look. DO NOT use 'roi_center' for adjusting sliders or wheels. Action Types:
+- 'set_slider': RECOMMENDED for all sliders and wheel components (contrast, saturation, Lift red, Gain blue, etc.). YOU MUST provide the absolute 'value' to enter from the valid range. Deltas are not supported.
+- 'drag': Use ONLY for color wheels or relative movement if a target does not have a defined numeric range. Requires dx (horizontal) and dy (vertical) in pixels. Typically 10-100px.
 - 'keypress': Use for hotkeys. Requires keys (list of strings).
 If no action is needed to match the reference look, return an empty actions array and stop=true.
-2026-02-11 20:16:16,910 INFO app.llm: LLM Full Prompt (User Data Size): 56493 bytes
-2026-02-11 20:16:16,910 INFO app.llm: LLM request attempt 1
-2026-02-11 20:16:21,174 INFO app.llm: LLM response status 200
-2026-02-11 20:16:21,175 INFO app.llm: LLM response body: {
-  "id": "chatcmpl-D89z7Vag0yQmBRM0GMgNtKAErM2eB",
+Note: The 'reason' field for each action should explicitly state the new target value (e.g., 'Set Gain_blue to 1.2 to warm highlights').
+2026-02-11 23:54:49,249 INFO app.llm: LLM Full Prompt (User Data Size): 62134 bytes
+2026-02-11 23:54:49,250 INFO app.llm: LLM request attempt 1
+2026-02-11 23:54:55,845 INFO app.llm: LLM response status 200
+2026-02-11 23:54:55,845 INFO app.llm: LLM response body: {
+  "id": "chatcmpl-D8DOacDZP4KmslcpgcGycqTV6xCFy",
   "object": "chat.completion",
-  "created": 1770837377,
+  "created": 1770850488,
   "model": "gpt-4.1-mini-2025-04-14",
   "choices": [
     {
       "index": 0,
       "message": {
         "role": "assistant",
-        "content": "{\"summary\":\"Increase saturation and contrast, adjust temperature and tint slightly, lift shadows, reduce highlights, and tweak gain wheel for better color balance.\",\"actions\":[{\"type\":\"set_slider\",\"target\":\"saturation_slider\",\"delta\":20,\"reason\":\"Increase saturation to match reference vibrancy\"},{\"type\":\"set_slider\",\"target\":\"contrast_slider\",\"delta\":0.3,\"reason\":\"Increase contrast for better dynamic range\"},{\"type\":\"set_slider\",\"target\":\"temperature_slider\",\"delta\":500,\"reason\":\"Warm image to match reference tone\"},{\"type\":\"set_slider\",\"target\":\"tint_slider\",\"delta\":10,\"reason\":\"Adjust tint for color accuracy\"},{\"type\":\"set_slider\",\"target\":\"shadows_slider\",\"delta\":15,\"reason\":\"Lift shadows for detail\"},{\"type\":\"set_slider\",\"target\":\"highlights_slider\",\"delta\":-20,\"reason\":\"Reduce highlights to recover details\"},{\"type\":\"drag\",\"target\":\"gain_wheel\",\"dx\":10,\"dy\":-10,\"reason\":\"Adjust gain wheel for color balance\"}],\"stop\":false,\"confidence\":0.85}",
+        "content": "{\"summary\":\"Increase contrast, saturation, warm temperature, adjust gain and lift for warm balanced look.\",\"actions\":[{\"type\":\"set_slider\",\"target\":\"Contrast\",\"value\":1.4,\"reason\":\"Set Contrast to 1.4 to increase contrast\"},{\"type\":\"set_slider\",\"target\":\"Saturation\",\"value\":65,\"reason\":\"Set Saturation to 65 to enhance color vibrancy\"},{\"type\":\"set_slider\",\"target\":\"Temp\",\"value\":1500,\"reason\":\"Set Temp to 1500 to warm the image\"},{\"type\":\"set_slider\",\"target\":\"Gain_red\",\"value\":1.2,\"reason\":\"Set Gain_red to 1.2 to warm highlights\"},{\"type\":\"set_slider\",\"target\":\"Gain_green\",\"value\":1.1,\"reason\":\"Set Gain_green to 1.1 to balance warm highlights\"},{\"type\":\"set_slider\",\"target\":\"Gain_blue\",\"value\":0.95,\"reason\":\"Set Gain_blue to 0.95 to reduce blue highlights for warmth\"},{\"type\":\"set_slider\",\"target\":\"Lift_red\",\"value\":0.1,\"reason\":\"Set Lift_red to 0.1 to warm shadows\"},{\"type\":\"set_slider\",\"target\":\"Lift_green\",\"value\":0.05,\"reason\":\"Set Lift_green to 0.05 to balance shadows\"},{\"type\":\"set_slider\",\"target\":\"Lift_blue\",\"value\":-0.1,\"reason\":\"Set Lift_blue to -0.1 to reduce blue in shadows for warmth\"}],\"stop\":false,\"confidence\":0.9}",
         "refusal": null,
         "annotations": []
       },
@@ -80,11 +283,11 @@ If no action is needed to match the reference look, return an empty actions arra
     }
   ],
   "usage": {
-    "prompt_tokens": 38041,
-    "completion_tokens": 213,
-    "total_tokens": 38254,
+    "prompt_tokens": 41711,
+    "completion_tokens": 306,
+    "total_tokens": 42017,
     "prompt_tokens_details": {
-      "cached_tokens": 23680,
+      "cached_tokens": 0,
       "audio_tokens": 0
     },
     "completion_tokens_details": {
@@ -98,72 +301,201 @@ If no action is needed to match the reference look, return an empty actions arra
   "system_fingerprint": "fp_75546bd1a7"
 }
 
-2026-02-11 20:16:21,179 INFO app.ui: Executing 3 actions
-2026-02-11 20:16:21,180 INFO app.ui: Executing action: type=set_slider target=saturation_slider dx=None dy=None delta=20 keys=None reason=Increase saturation to match reference vibrancy
-2026-02-11 20:16:21,180 INFO app.executor: Executing action: type=set_slider target=saturation_slider dx=None dy=None delta=20 keys=None reason=Increase saturation to match reference vibrancy
-2026-02-11 20:16:21,180 INFO app.ui: Moving to target: {'x': 899, 'y': 1980}
-2026-02-11 20:16:21,180 INFO app.executor: Moving to target: {'x': 899, 'y': 1980}
-2026-02-11 20:16:21,394 INFO app.ui: Adjusting slider 'saturation_slider' by dragging dx=149.20 (ratio=7.4600)
-2026-02-11 20:16:21,395 INFO app.executor: Adjusting slider 'saturation_slider' by dragging dx=149.20 (ratio=7.4600)
-2026-02-11 20:16:22,587 INFO app.ui: Executing action: type=set_slider target=contrast_slider dx=None dy=None delta=0.3 keys=None reason=Increase contrast for better dynamic range
-2026-02-11 20:16:22,588 INFO app.executor: Executing action: type=set_slider target=contrast_slider dx=None dy=None delta=0.3 keys=None reason=Increase contrast for better dynamic range
-2026-02-11 20:16:22,588 INFO app.ui: Moving to target: {'x': 855, 'y': 1465}
-2026-02-11 20:16:22,588 INFO app.executor: Moving to target: {'x': 855, 'y': 1465}
-2026-02-11 20:16:22,795 INFO app.ui: Adjusting slider 'contrast_slider' by dragging dx=228.70 (ratio=762.3300)
-2026-02-11 20:16:22,795 INFO app.executor: Adjusting slider 'contrast_slider' by dragging dx=228.70 (ratio=762.3300)
-2026-02-11 20:16:23,992 INFO app.ui: Executing action: type=set_slider target=temperature_slider dx=None dy=None delta=500 keys=None reason=Warm image to match reference tone
-2026-02-11 20:16:23,992 INFO app.executor: Executing action: type=set_slider target=temperature_slider dx=None dy=None delta=500 keys=None reason=Warm image to match reference tone
-2026-02-11 20:16:23,993 INFO app.ui: Moving to target: {'x': 322, 'y': 1465}
-2026-02-11 20:16:23,993 INFO app.executor: Moving to target: {'x': 322, 'y': 1465}
-2026-02-11 20:16:24,193 INFO app.ui: Adjusting slider 'temperature_slider' by dragging dx=76.10 (ratio=0.1522)
-2026-02-11 20:16:24,193 INFO app.executor: Adjusting slider 'temperature_slider' by dragging dx=76.10 (ratio=0.1522)
-2026-02-11 20:16:25,837 INFO app.ui: {
-  "summary": "Increase saturation and contrast, adjust temperature and tint slightly, lift shadows, reduce highlights, and tweak gain wheel for better color balance.",
+2026-02-11 23:54:55,848 INFO app.ui: Executing 3 actions
+2026-02-11 23:54:55,849 INFO app.ui: Executing action: type=set_slider target=Contrast dx=None dy=None keys=None reason=Set Contrast to 1.4 to increase contrast
+2026-02-11 23:54:55,849 INFO app.executor: Executing action: type=set_slider target=Contrast dx=None dy=None keys=None reason=Set Contrast to 1.4 to increase contrast
+2026-02-11 23:54:55,850 INFO app.ui: Moving to target: {'x': 847, 'y': 1486}
+2026-02-11 23:54:55,850 INFO app.executor: Moving to target: {'x': 847, 'y': 1486}
+2026-02-11 23:54:56,060 INFO app.ui: Setting slider 'Contrast' by typing value=1.4
+2026-02-11 23:54:56,060 INFO app.executor: Setting slider 'Contrast' by typing value=1.4
+2026-02-11 23:54:56,922 INFO app.ui: [DEBUG] Typed value '1.4' for target 'Contrast'
+2026-02-11 23:54:56,922 INFO app.executor: [DEBUG] Typed value '1.4' for target 'Contrast'
+2026-02-11 23:54:57,305 INFO app.ui: Executing action: type=set_slider target=Saturation dx=None dy=None keys=None reason=Set Saturation to 65 to enhance color vibrancy
+2026-02-11 23:54:57,305 INFO app.executor: Executing action: type=set_slider target=Saturation dx=None dy=None keys=None reason=Set Saturation to 65 to enhance color vibrancy
+2026-02-11 23:54:57,305 INFO app.ui: Moving to target: {'x': 895, 'y': 2007}
+2026-02-11 23:54:57,305 INFO app.executor: Moving to target: {'x': 895, 'y': 2007}
+2026-02-11 23:54:57,524 INFO app.ui: Setting slider 'Saturation' by typing value=65.0
+2026-02-11 23:54:57,524 INFO app.executor: Setting slider 'Saturation' by typing value=65.0
+2026-02-11 23:54:58,391 INFO app.ui: [DEBUG] Typed value '65' for target 'Saturation'
+2026-02-11 23:54:58,391 INFO app.executor: [DEBUG] Typed value '65' for target 'Saturation'
+2026-02-11 23:54:58,772 INFO app.ui: Executing action: type=set_slider target=Temp dx=None dy=None keys=None reason=Set Temp to 1500 to warm the image
+2026-02-11 23:54:58,772 INFO app.executor: Executing action: type=set_slider target=Temp dx=None dy=None keys=None reason=Set Temp to 1500 to warm the image
+2026-02-11 23:54:58,772 INFO app.ui: Moving to target: {'x': 333, 'y': 1488}
+2026-02-11 23:54:58,772 INFO app.executor: Moving to target: {'x': 333, 'y': 1488}
+2026-02-11 23:54:58,983 INFO app.ui: Setting slider 'Temp' by typing value=1500.0
+2026-02-11 23:54:58,983 INFO app.executor: Setting slider 'Temp' by typing value=1500.0
+2026-02-11 23:54:59,852 INFO app.ui: [DEBUG] Typed value '1500' for target 'Temp'
+2026-02-11 23:54:59,852 INFO app.executor: [DEBUG] Typed value '1500' for target 'Temp'
+2026-02-11 23:55:00,643 INFO app.ui: {
+  "summary": "Increase contrast, saturation, warm temperature, adjust gain and lift for warm balanced look.",
   "actions": [
     {
       "type": "set_slider",
-      "target": "saturation_slider",
-      "delta": 20,
-      "reason": "Increase saturation to match reference vibrancy"
+      "target": "Contrast",
+      "value": 1.4,
+      "reason": "Set Contrast to 1.4 to increase contrast"
     },
     {
       "type": "set_slider",
-      "target": "contrast_slider",
-      "delta": 0.3,
-      "reason": "Increase contrast for better dynamic range"
+      "target": "Saturation",
+      "value": 65,
+      "reason": "Set Saturation to 65 to enhance color vibrancy"
     },
     {
       "type": "set_slider",
-      "target": "temperature_slider",
-      "delta": 500,
-      "reason": "Warm image to match reference tone"
+      "target": "Temp",
+      "value": 1500,
+      "reason": "Set Temp to 1500 to warm the image"
     },
     {
       "type": "set_slider",
-      "target": "tint_slider",
-      "delta": 10,
-      "reason": "Adjust tint for color accuracy"
+      "target": "Gain_red",
+      "value": 1.2,
+      "reason": "Set Gain_red to 1.2 to warm highlights"
     },
     {
       "type": "set_slider",
-      "target": "shadows_slider",
-      "delta": 15,
-      "reason": "Lift shadows for detail"
+      "target": "Gain_green",
+      "value": 1.1,
+      "reason": "Set Gain_green to 1.1 to balance warm highlights"
     },
     {
       "type": "set_slider",
-      "target": "highlights_slider",
-      "delta": -20,
-      "reason": "Reduce highlights to recover details"
+      "target": "Gain_blue",
+      "value": 0.95,
+      "reason": "Set Gain_blue to 0.95 to reduce blue highlights for warmth"
     },
     {
-      "type": "drag",
-      "target": "gain_wheel",
-      "dx": 10,
-      "dy": -10,
-      "reason": "Adjust gain wheel for color balance"
+      "type": "set_slider",
+      "target": "Lift_red",
+      "value": 0.1,
+      "reason": "Set Lift_red to 0.1 to warm shadows"
+    },
+    {
+      "type": "set_slider",
+      "target": "Lift_green",
+      "value": 0.05,
+      "reason": "Set Lift_green to 0.05 to balance shadows"
+    },
+    {
+      "type": "set_slider",
+      "target": "Lift_blue",
+      "value": -0.1,
+      "reason": "Set Lift_blue to -0.1 to reduce blue in shadows for warmth"
     }
   ],
   "stop": false,
-  "confidence": 0.85
+  "confidence": 0.9
+}
+2026-02-11 23:55:02,079 INFO app.ui: Requesting LLM actions
+2026-02-11 23:55:02,105 INFO app.llm: LLM payload size: 61371 bytes
+2026-02-11 23:55:02,106 INFO app.llm: LLM Full Prompt (System): You are controlling DaVinci Resolve color grading. Return ONLY a JSON object that matches this schema exactly (no extra keys, no markdown): {summary: string, actions: [{type: string, target: string, dx?: number, dy?: number, value?: number, keys?: string[], reason: string}], stop: boolean, confidence: number}. Rules: summary and reason must be short strings; confidence must be 0.0-1.0. Coordinate system: origin is top-left of the screen; positive dx moves right, positive dy moves down. The 'target' field MUST be one of these calibration targets: Color Boost, Contrast, Gain_blue, Gain_green, Gain_red, Gain_white, Gamma_blue, Gamma_green, Gamma_red, Gamma_white, Highlights, Hue, Lift_blue, Lift_green, Lift_red, Lift_white, Lum Mix, Mid/Detail, Offset_blue, Offset_green, Offset_red, Pivot, Saturation, Shadows, Temp, Tint, roi_center. Target Details & valid ranges: 'Temp' (slider: Temp, Range: [-4000, 4000], Default: 0); 'Tint' (slider: Tint, Range: [-100, 100], Default: 0); 'Contrast' (slider: Contrast, Range: [0, 2], Default: 1); 'Pivot' (slider: Pivot, Range: [0, 1], Default: 0.435); 'Mid/Detail' (slider: Mid/Detail, Range: [-100, 100], Default: 0); 'Color Boost' (slider: Color Boost, Range: [-100, 100], Default: 0); 'Shadows' (slider: Shadows, Range: [-100, 100], Default: 0); 'Highlights' (slider: Highlights, Range: [-100, 100], Default: 0); 'Saturation' (slider: Saturation, Range: [0, 100], Default: 50); 'Hue' (slider: Hue, Range: [0, 100], Default: 50); 'Lum Mix' (slider: Lum Mix, Range: [0, 100], Default: 100); 'Lift_white' (wheel_component: Lift white, Range: [-1, 1], Default: 0); 'Lift_red' (wheel_component: Lift red, Range: [-1, 1], Default: 0); 'Lift_green' (wheel_component: Lift green, Range: [-1, 1], Default: 0); 'Lift_blue' (wheel_component: Lift blue, Range: [-1, 1], Default: 0); 'Gamma_white' (wheel_component: Gamma white, Range: [-1, 1], Default: 0); 'Gamma_red' (wheel_component: Gamma red, Range: [-1, 1], Default: 0); 'Gamma_green' (wheel_component: Gamma green, Range: [-1, 1], Default: 0); 'Gamma_blue' (wheel_component: Gamma blue, Range: [-1, 1], Default: 0); 'Gain_white' (wheel_component: Gain white, Range: [0.01, 16], Default: 1); 'Gain_red' (wheel_component: Gain red, Range: [0.01, 16], Default: 1); 'Gain_green' (wheel_component: Gain green, Range: [0.01, 16], Default: 1); 'Gain_blue' (wheel_component: Gain blue, Range: [0.01, 16], Default: 1); 'Offset_red' (wheel_component: Offset red, Range: [-75, 125], Default: 25); 'Offset_green' (wheel_component: Offset green, Range: [-75, 125], Default: 25); 'Offset_blue' (wheel_component: Offset blue, Range: [-75, 125], Default: 25). The 'current_state' shows the current values of the controllers in Resolve. Use these values as a baseline for your adjustments. USER INSTRUCTIONS: Increase contrast, saturation, warm temperature, adjust gain and lift for warm balanced look. DO NOT use 'roi_center' for adjusting sliders or wheels. Action Types:
+- 'set_slider': RECOMMENDED for all sliders and wheel components (contrast, saturation, Lift red, Gain blue, etc.). YOU MUST provide the absolute 'value' to enter from the valid range. Deltas are not supported.
+- 'drag': Use ONLY for color wheels or relative movement if a target does not have a defined numeric range. Requires dx (horizontal) and dy (vertical) in pixels. Typically 10-100px.
+- 'keypress': Use for hotkeys. Requires keys (list of strings).
+If no action is needed to match the reference look, return an empty actions array and stop=true.
+Note: The 'reason' field for each action should explicitly state the new target value (e.g., 'Set Gain_blue to 1.2 to warm highlights').
+2026-02-11 23:55:02,106 INFO app.llm: LLM Full Prompt (User Data Size): 61371 bytes
+2026-02-11 23:55:02,108 INFO app.llm: LLM request attempt 1
+2026-02-11 23:55:02,433 INFO app.ui: Global stop triggered.
+2026-02-11 23:55:02,434 INFO app.ui: Global stop triggered
+2026-02-11 23:55:08,371 INFO app.llm: LLM response status 200
+2026-02-11 23:55:08,372 INFO app.llm: LLM response body: {
+  "id": "chatcmpl-D8DOnDweeZFIaFmqycXVDsBcNkZBb",
+  "object": "chat.completion",
+  "created": 1770850501,
+  "model": "gpt-4.1-mini-2025-04-14",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"summary\":\"Increase contrast, saturation, warm temperature, and adjust gain and lift for warm balanced look.\",\"actions\":[{\"type\":\"set_slider\",\"target\":\"Contrast\",\"value\":1.5,\"reason\":\"Set Contrast to 1.5 to increase image contrast\"},{\"type\":\"set_slider\",\"target\":\"Saturation\",\"value\":70,\"reason\":\"Set Saturation to 70 to enhance color intensity\"},{\"type\":\"set_slider\",\"target\":\"Temp\",\"value\":1500,\"reason\":\"Set Temp to 1500 to warm the image temperature\"},{\"type\":\"set_slider\",\"target\":\"Gain_red\",\"value\":1.2,\"reason\":\"Set Gain_red to 1.2 to warm highlights\"},{\"type\":\"set_slider\",\"target\":\"Gain_green\",\"value\":1.1,\"reason\":\"Set Gain_green to 1.1 to balance warm highlights\"},{\"type\":\"set_slider\",\"target\":\"Gain_blue\",\"value\":0.9,\"reason\":\"Set Gain_blue to 0.9 to reduce blue highlights for warmth\"},{\"type\":\"set_slider\",\"target\":\"Lift_red\",\"value\":0.1,\"reason\":\"Set Lift_red to 0.1 to warm shadows\"},{\"type\":\"set_slider\",\"target\":\"Lift_green\",\"value\":0.05,\"reason\":\"Set Lift_green to 0.05 to balance warm shadows\"},{\"type\":\"set_slider\",\"target\":\"Lift_blue\",\"value\":-0.1,\"reason\":\"Set Lift_blue to -0.1 to reduce blue shadows for warmth\"}],\"stop\":false,\"confidence\":0.9}",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 41245,
+    "completion_tokens": 308,
+    "total_tokens": 41553,
+    "prompt_tokens_details": {
+      "cached_tokens": 25728,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_75546bd1a7"
+}
+
+2026-02-11 23:55:08,375 INFO app.ui: Executing 3 actions
+2026-02-11 23:55:08,819 INFO app.ui: {
+  "summary": "Increase contrast, saturation, warm temperature, and adjust gain and lift for warm balanced look.",
+  "actions": [
+    {
+      "type": "set_slider",
+      "target": "Contrast",
+      "value": 1.5,
+      "reason": "Set Contrast to 1.5 to increase image contrast"
+    },
+    {
+      "type": "set_slider",
+      "target": "Saturation",
+      "value": 70,
+      "reason": "Set Saturation to 70 to enhance color intensity"
+    },
+    {
+      "type": "set_slider",
+      "target": "Temp",
+      "value": 1500,
+      "reason": "Set Temp to 1500 to warm the image temperature"
+    },
+    {
+      "type": "set_slider",
+      "target": "Gain_red",
+      "value": 1.2,
+      "reason": "Set Gain_red to 1.2 to warm highlights"
+    },
+    {
+      "type": "set_slider",
+      "target": "Gain_green",
+      "value": 1.1,
+      "reason": "Set Gain_green to 1.1 to balance warm highlights"
+    },
+    {
+      "type": "set_slider",
+      "target": "Gain_blue",
+      "value": 0.9,
+      "reason": "Set Gain_blue to 0.9 to reduce blue highlights for warmth"
+    },
+    {
+      "type": "set_slider",
+      "target": "Lift_red",
+      "value": 0.1,
+      "reason": "Set Lift_red to 0.1 to warm shadows"
+    },
+    {
+      "type": "set_slider",
+      "target": "Lift_green",
+      "value": 0.05,
+      "reason": "Set Lift_green to 0.05 to balance warm shadows"
+    },
+    {
+      "type": "set_slider",
+      "target": "Lift_blue",
+      "value": -0.1,
+      "reason": "Set Lift_blue to -0.1 to reduce blue shadows for warmth"
+    }
+  ],
+  "stop": false,
+  "confidence": 0.9
 }

@@ -16,7 +16,7 @@ class Action:
     target: str
     dx: float | None = None
     dy: float | None = None
-    delta: float | None = None
+    value: float | None = None
     keys: list | None = None
     reason: str | None = None
 
@@ -32,20 +32,6 @@ class ActionExecutor:
         self._listener = keyboard.Listener(on_press=self._on_key)
         self._listener.start()
         self.last_action = None
-        self.default_pixels_per_unit = 7.46
-        self.ratios = {
-            "temperature_slider": 0.1522,
-            "saturation_slider": 7.46,
-            "contrast_slider": 762.33,  # Recalibrated for undershoot: observed +0.098 vs +0.100; 747.06*(0.1/0.098)=~762.33
-            "color_boost": 2.984,  # Recalibrated: target +10, observed +25.0; 7.46 * (10/25) = 2.984
-            "shadows_slider": 3.141,  # Recalibrated: target +10, observed +9.5; 2.984 * (10/9.5) ≈ 3.141
-            "highlights_slider": 3.045,  # Recalibrated: target +10, observed +24.5; 7.46 * (10/24.5) ≈ 3.045
-            "hue_slider": 7.612,  # Recalibrated: target +10, observed +9.8 (50->59.8); 7.46 * (10/9.8) ≈ 7.612
-            "lum_mix": 7.46,
-            "tint_slider": 3.01,
-            "pivot_slider": 747.41,
-            "midtone_detail": 3.0453
-        }
 
     def _on_key(self, key):
         if key == keyboard.Key.pause or key == keyboard.Key.esc:
@@ -89,17 +75,33 @@ class ActionExecutor:
             get_windows = getattr(pyautogui, "getWindowsWithTitle", None)
             if get_windows is None:
                 return False
-            windows = get_windows(self.focus_title)
+            # Filter to avoid matching browser tabs with "DaVinci Resolve" in title
+            windows = [w for w in get_windows(self.focus_title) 
+                      if "Google Chrome" not in w.title and "Microsoft Edge" not in w.title]
             if not windows:
                 return False
             window = windows[0]
+            if window.isMinimized:
+                window.restore()
             window.activate()
-            time.sleep(0.2)
+            # Bring to top more forcefully
+            pyautogui.press('alt')
+            window.activate()
+            
+            # Wait for focus with timeout (event-based approach)
+            start_time = time.time()
+            while time.time() - start_time < 1.0:
+                if self._has_focus():
+                    # Small settle time for redraw
+                    time.sleep(0.05)
+                    return True
+                time.sleep(0.02)
+            
             return self._has_focus()
         except Exception:
             return False
 
-    def execute_actions(self, actions, calibration, iter_idx: int = 0, session_logger=None):
+    def execute_actions(self, actions, calibration, iter_idx: int = 0, session_logger=None, inter_action_delay: float = 0.1):
         executed = []
         for i, raw in enumerate(actions):
             if self._stop:
@@ -113,7 +115,7 @@ class ActionExecutor:
                     self._log("Resolve not focused. Pausing actions.")
                     break
             try:
-                allowed_keys = {"type", "target", "dx", "dy", "delta", "keys", "reason"}
+                allowed_keys = {"type", "target", "dx", "dy", "value", "keys", "reason"}
                 payload = {key: raw[key] for key in raw.keys() if key in allowed_keys}
                 dropped = [key for key in raw.keys() if key not in allowed_keys]
                 if dropped:
@@ -123,13 +125,12 @@ class ActionExecutor:
                 self._log(f"Failed to parse action payload: {raw}. Error: {exc}")
                 continue
             self._log(
-                "Executing action: type=%s target=%s dx=%s dy=%s delta=%s keys=%s reason=%s"
+                "Executing action: type=%s target=%s dx=%s dy=%s keys=%s reason=%s"
                 % (
                     action.type,
                     action.target,
                     action.dx,
                     action.dy,
-                    action.delta,
                     action.keys,
                     action.reason,
                 )
@@ -139,7 +140,12 @@ class ActionExecutor:
                 self.last_action = action
             else:
                 self._log("Action execution failed.")
-            time.sleep(random.uniform(0.08, 0.18))
+            
+            # Apply inter-action delay
+            if i < len(actions) - 1: # No need to wait after the last action
+                time.sleep(inter_action_delay)
+            else:
+                time.sleep(random.uniform(0.04, 0.09))
         return executed
 
     def _execute(self, action: Action, calibration, iter_idx: int = 0, action_idx: int = 0, session_logger=None) -> bool:
@@ -149,13 +155,21 @@ class ActionExecutor:
                 pyautogui.hotkey(*action.keys)
                 return True
 
+            # target is now expected to be flat from calibration.targets
             target = calibration.get_target(action.target) if calibration else None
+            
+            # If not found directly, try to see if it's a wheel action that needs mapping
+            if target is None and action.type == "drag" and "_" not in action.target:
+                # Legacy or simplified wheel target like "lift_wheel" -> "Lift_white" or similar?
+                # Actually, our new scheme uses f"{wheel_name}_{comp_name}"
+                # If LLM says "Lift" it might be ambiguous.
+                pass
+
             if target is None:
                 self._log(f"Skipping action: unknown target '{action.target}'.")
                 return False
 
             self._log("Moving to target: %s" % target)
-            # For sliders, we prefer pressing slightly below the numeric pill to avoid click increments
             base_x, base_y = target["x"], target["y"]
             pyautogui.moveTo(base_x, base_y, duration=0)
             
@@ -199,31 +213,29 @@ class ActionExecutor:
                         self.logger.warning(f"Failed to capture action AFTER screenshot: {e}")
                 return True
 
-            if action.type == "set_slider" and action.delta is not None:
-                ratio = self.ratios.get(action.target, self.default_pixels_per_unit)
-
-                # Compute intended drag in pixels
-                dx = float(action.delta) * float(ratio)
-                
-                self._log(f"Adjusting slider '{action.target}' by dragging dx={dx:.2f} (ratio={ratio:.4f})")
-                
-                # Press slightly below the coordinate to avoid hitting the numeric pill directly
-                start_y = base_y + 12
-                pyautogui.moveTo(base_x, start_y, duration=0)
+            if action.type == "set_slider" and action.value is not None:
+                # Always set by double-clicking and typing the absolute value
+                val = float(action.value)
+                self._log(f"Setting slider '{action.target}' by typing value={val}")
+                pyautogui.moveTo(base_x, base_y, duration=0)
+                # Ensure we click exactly on the target
+                pyautogui.click() # Click once to focus the controller if needed
                 time.sleep(0.05)
-                pyautogui.mouseDown()
-                # Prime a 1px move to ensure UI enters drag mode
-                p_dx = 1 if dx > 0 else -1
-                pyautogui.moveRel(p_dx, 0, duration=0.08)
-                # Main move minus the prime pixel
-                m_dx = dx - p_dx
-                if abs(m_dx) > 0:
-                    pyautogui.moveRel(m_dx, 0, duration=0.22)
-                pyautogui.mouseUp()
-                # Park mouse immediately after drag
-                pyautogui.moveTo(10, 10, duration=0)
+                pyautogui.doubleClick()
                 time.sleep(0.1)
-
+                pyautogui.hotkey('ctrl', 'a') # Ensure current value is selected
+                time.sleep(0.05)
+                pyautogui.press('backspace') # Clear it for safety
+                time.sleep(0.05)
+                try:
+                    txt = ("%0.3f" % val).rstrip('0').rstrip('.')
+                except Exception:
+                    txt = str(val)
+                pyautogui.typewrite(txt)
+                self._log(f"[DEBUG] Typed value '{txt}' for target '{action.target}'")
+                time.sleep(0.05)
+                pyautogui.press("enter")
+                time.sleep(0.1) # Wait for Resolve to register the value
                 # After-action screenshot
                 if session_logger:
                     try:
