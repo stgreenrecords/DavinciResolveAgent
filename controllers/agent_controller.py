@@ -65,6 +65,9 @@ class AgentController:
         continuous: bool,
         on_iteration_updated: Callable[[int, SimilarityMetrics, object, dict, str], None],
         on_log: Callable[[str], None],
+        on_thinking_started: Callable[[], None] | None = None,
+        on_recommendation_received: Callable[[str], None] | None = None,
+        on_recommendation_closed: Callable[[], None] | None = None,
     ) -> tuple[int, SimilarityMetrics | None, dict]:
         if self.state == AgentState.IDLE:
             self.transition(AgentState.READY)
@@ -80,6 +83,9 @@ class AgentController:
                 session_logger=self.session_logger,
                 on_iteration_updated=on_iteration_updated,
                 on_log=on_log,
+                on_thinking_started=on_thinking_started,
+                on_recommendation_received=on_recommendation_received,
+                on_recommendation_closed=on_recommendation_closed,
             )
             self.iteration = iteration
             self.last_metrics = last_metrics

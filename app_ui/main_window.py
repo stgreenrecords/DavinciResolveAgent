@@ -12,6 +12,7 @@ from controllers.calibration_manager import CalibrationManager
 from controllers.iteration_runner import IterationRunner
 from controllers.settings_manager import SettingsManager
 from controllers.task_queue import TaskQueue
+from llm.client import DEFAULT_VISION_MODELS
 from vision.metrics import SimilarityMetrics
 
 
@@ -143,6 +144,68 @@ class _ConfirmDialog(QtWidgets.QDialog):
         layout.addLayout(buttons)
 
 
+class StatusOverlay(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_NoSystemBackground)
+        self.hide()
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+        self.container = QtWidgets.QFrame()
+        self.container.setObjectName("overlayContainer")
+        self.container.setStyleSheet("""
+            #overlayContainer {
+                background-color: rgba(15, 23, 42, 230);
+                border: 2px solid #3b82f6;
+                border-radius: 12px;
+                min-width: 300px;
+                max-width: 500px;
+            }
+            QLabel {
+                color: #f8fafc;
+                font-size: 14px;
+                font-weight: 600;
+            }
+        """)
+
+        container_layout = QtWidgets.QVBoxLayout(self.container)
+        container_layout.setContentsMargins(24, 24, 24, 24)
+        container_layout.setSpacing(16)
+
+        self.spinner = QtWidgets.QProgressBar()
+        self.spinner.setRange(0, 0)
+        self.spinner.setTextVisible(False)
+        self.spinner.setFixedHeight(4)
+        self.spinner.setStyleSheet("""
+            QProgressBar {
+                background: #1e293b;
+                border: none;
+                border-radius: 2px;
+            }
+            QProgressBar::chunk {
+                background: #3b82f6;
+            }
+        """)
+
+        self.label = QtWidgets.QLabel("AI is thinking...")
+        self.label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.label.setWordWrap(True)
+
+        container_layout.addWidget(self.spinner)
+        container_layout.addWidget(self.label)
+
+        layout.addWidget(self.container)
+
+    def show_message(self, message: str, show_spinner: bool = True):
+        self.label.setText(message)
+        self.spinner.setVisible(show_spinner)
+        self.show()
+        self.raise_()
+
+
 class MainWindow(QtWidgets.QMainWindow):
     models_refreshed = QtCore.Signal(list)
     iteration_updated = QtCore.Signal(int, str, object, str, str)
@@ -166,15 +229,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.calibration = self.calibration_manager.load()
         self.reference_image_path: Path | None = None
         self._build_ui()
+        self.status_overlay = StatusOverlay(self)
         self._install_ui_logger()
         self.agent_controller.set_stop_callback(self.on_stop_triggered)
         self.agent_controller.set_log_callback(self._append_log)
         self._apply_theme()
         self.models_refreshed.connect(self._apply_models)
+        self.model_edit.currentTextChanged.connect(self._on_model_changed)
         self.iteration_updated.connect(self._update_status)
         self.reference_preview_ready.connect(self._apply_reference_preview)
         self._load_settings()
         self._update_button_states()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "status_overlay"):
+            self.status_overlay.setGeometry(self.rect())
 
     def _apply_theme(self):
         self.setStyleSheet(
@@ -401,20 +471,6 @@ class MainWindow(QtWidgets.QMainWindow):
         ref_grid.addLayout(info_col, 1, 0)
 
         layout.addLayout(ref_grid)
-
-        # Instructions Section
-        instr_header = QtWidgets.QHBoxLayout()
-        instr_title = QtWidgets.QLabel("GPT INSTRUCTIONS")
-        instr_title.setStyleSheet("color: #64748b; font-weight: 700; letter-spacing: 2px; font-size: 10px;")
-        instr_header.addWidget(instr_title)
-        instr_header.addStretch(1)
-        layout.addLayout(instr_header)
-
-        self.instructions_edit = QtWidgets.QTextEdit()
-        self.instructions_edit.setPlaceholderText("e.g. Add saturation, decrease shadows...")
-        self.instructions_edit.setFixedHeight(60)
-        self.instructions_edit.setToolTip("Enter short instructions for the AI to follow (e.g. from ChatGPT).")
-        layout.addWidget(self.instructions_edit)
 
         live_header = QtWidgets.QHBoxLayout()
         live_title = QtWidgets.QLabel("LIVE STATUS")
@@ -763,13 +819,38 @@ class MainWindow(QtWidgets.QMainWindow):
                     QtCore.Q_ARG(str, message),
                 )
 
+            def on_thinking_started():
+                QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
+                    self,
+                    "_on_thinking_started",
+                    QtCore.Qt.ConnectionType.QueuedConnection,
+                )
+
+            def on_recommendation_received(summary: str):
+                QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
+                    self,
+                    "_on_recommendation_received",
+                    QtCore.Qt.ConnectionType.QueuedConnection,
+                    QtCore.Q_ARG(str, summary),
+                )
+
+            def on_recommendation_closed():
+                QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
+                    self,
+                    "_on_recommendation_closed",
+                    QtCore.Qt.ConnectionType.QueuedConnection,
+                )
+
             self.agent_controller.run_iteration(
                 reference_image_path=ref_path,
                 calibration=calibration,
-                instructions=self.instructions_edit.toPlainText().strip(),
+                instructions="",
                 continuous=self.continuous_checkbox.isChecked(),
                 on_iteration_updated=on_iteration_updated,
                 on_log=on_log,
+                on_thinking_started=on_thinking_started,
+                on_recommendation_received=on_recommendation_received,
+                on_recommendation_closed=on_recommendation_closed,
             )
 
         except Exception as exc:
@@ -787,6 +868,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 QtCore.Qt.ConnectionType.QueuedConnection,
             )
 
+    @QtCore.Slot(str)
+    def _on_model_changed(self, model_name: str):
+        if model_name in DEFAULT_VISION_MODELS:
+            self.endpoint_edit.setText(DEFAULT_VISION_MODELS[model_name])
+
     @QtCore.Slot(int, str, object, str, str)
     def _update_status(self, iteration: int, similarity: str, image, log: str, summary: str):
         self.iteration_label.setText(str(iteration))
@@ -801,8 +887,6 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.thumbnail_label.setPixmap(scaled)
         self._append_log(log)
-        if summary:
-            self.instructions_edit.setText(summary)
 
     def _to_qimage(self, image) -> QtGui.QImage:
         if isinstance(image, tuple) and len(image) == 2:
@@ -822,6 +906,18 @@ class MainWindow(QtWidgets.QMainWindow):
         if isinstance(image, QtGui.QImage):
             return image
         raise ValueError("Unsupported image type for preview.")
+
+    @QtCore.Slot()
+    def _on_thinking_started(self):
+        self.status_overlay.show_message("AI is thinking...", show_spinner=True)
+
+    @QtCore.Slot(str)
+    def _on_recommendation_received(self, summary: str):
+        self.status_overlay.show_message(summary or "Applying adjustments...", show_spinner=False)
+
+    @QtCore.Slot()
+    def _on_recommendation_closed(self):
+        self.status_overlay.hide()
 
     @QtCore.Slot()
     def _finish_iteration(self):

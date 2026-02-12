@@ -47,6 +47,21 @@ ACTION_SCHEMA = {
 }
 
 
+# Standard vision-capable models and their default endpoints
+DEFAULT_VISION_MODELS = {
+    "gpt-4o": "https://api.openai.com/v1/chat/completions",
+    "gpt-4o-mini": "https://api.openai.com/v1/chat/completions",
+    "gpt-5": "https://api.openai.com/v1/chat/completions",
+    "gpt-5-mini": "https://api.openai.com/v1/chat/completions",
+    "gpt-4-turbo": "https://api.openai.com/v1/chat/completions",
+    "claude-3-5-sonnet-20240620": "https://api.anthropic.com/v1/messages",
+    "claude-3-opus-20240229": "https://api.anthropic.com/v1/messages",
+    "gemini-1.5-pro": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    "gemini-1.5-flash": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    "llama-3.2-90b-vision-preview": "https://api.groq.com/openai/v1/chat/completions",
+}
+
+
 @dataclass
 class LlmResponse:
     """Normalized response returned by the LLM provider."""
@@ -99,20 +114,33 @@ class LlmClient(LlmProvider):
         session.mount("http://", adapter)
         return session
 
+    def _is_reasoning_model(self, model: str) -> bool:
+        """Check if the model is a reasoning model (o1, gpt-5, etc.) that requires specific handling."""
+        reasoning_prefixes = ("o1-", "o3-", "gpt-5")
+        reasoning_exact = ("o1", "o3")
+        return model.startswith(reasoning_prefixes) or model in reasoning_exact
+
     def test_connection(self) -> dict[str, Any]:
         """Perform a lightweight API call to verify connectivity."""
         settings = self.settings_store.load_settings()
         endpoint = settings.endpoint or self._settings.api_endpoint
         model = settings.model or self._settings.default_model
         headers = {"Authorization": f"Bearer {settings.api_key}", "Content-Type": "application/json"}
+
+        # Reasoning models only support temperature=1 and often prefer developer role
+        is_reasoning = self._is_reasoning_model(model)
+        system_role = "developer" if is_reasoning else "system"
+
         payload = {
             "model": model,
             "messages": [
-                {"role": "system", "content": "You are a connectivity test. Reply with OK."},
+                {"role": system_role, "content": "You are a connectivity test. Reply with OK."},
                 {"role": "user", "content": "ping"},
             ],
-            "temperature": 0.0,
         }
+        if not is_reasoning:
+            payload["temperature"] = 0.0
+
         self.logger.info("LLM test connection request")
         response = self._session.post(endpoint, headers=headers, json=payload, timeout=(10, 30))
         self.logger.info("LLM test response status %s", response.status_code)
@@ -266,13 +294,16 @@ class LlmClient(LlmProvider):
         if retry_hint:
             prompt = f"{prompt} {retry_hint}"
 
+        is_reasoning = self._is_reasoning_model(model)
+        system_role = "developer" if is_reasoning else "system"
+
         payload = {
             "model": model,
             "messages": [
-                {"role": "system", "content": prompt},
+                {"role": system_role, "content": prompt},
                 {"role": "user", "content": payload_text},
             ],
-            "temperature": 0.2,
+            "temperature": 1.0 if is_reasoning else 0.2,
         }
 
         # Log the full prompt for debugging
@@ -381,20 +412,8 @@ class LlmClient(LlmProvider):
         }
 
     def list_models(self) -> list[str]:
-        """List available models from the configured API endpoint."""
-        settings = self.settings_store.load_settings()
-        endpoint = settings.endpoint or self._settings.api_endpoint
-        headers = {"Authorization": f"Bearer {settings.api_key}"}
-        models_url = self._models_url(endpoint)
-        self.logger.info("LLM models request: %s", models_url)
-        response = self._session.get(models_url, headers=headers, timeout=(10, 30))
-        self.logger.info("LLM models response status %s", response.status_code)
-        response.raise_for_status()
-        data = response.json()
-        models = [item.get("id") for item in data.get("data", []) if isinstance(item, dict)]
-        all_models = sorted({m for m in models if isinstance(m, str) and m.strip()})
-        self.logger.info("LLM models response count: %d", len(all_models))
-        return all_models
+        """List available models. Returns a curated list of vision-capable models."""
+        return sorted(list(DEFAULT_VISION_MODELS.keys()))
 
     @staticmethod
     def _models_url(endpoint: str) -> str:

@@ -32,6 +32,9 @@ class IterationRunner:
         session_logger,
         on_iteration_updated: Callable[[int, SimilarityMetrics, object, dict, str], None],
         on_log: Callable[[str], None],
+        on_thinking_started: Callable[[], None] | None = None,
+        on_recommendation_received: Callable[[str], None] | None = None,
+        on_recommendation_closed: Callable[[], None] | None = None,
     ) -> tuple[int, SimilarityMetrics | None, dict]:
         """Run one or more iterations and return updated iteration, metrics, and state."""
         last_metrics: SimilarityMetrics | None = None
@@ -64,7 +67,16 @@ class IterationRunner:
                 )
 
                 self._logger.info("Requesting LLM actions")
+                if on_thinking_started:
+                    on_thinking_started()
                 response = self._llm_client.request_actions(ctx)
+
+                summary = response.raw.get("summary", "")
+                if on_recommendation_received:
+                    on_recommendation_received(summary)
+                    time.sleep(3.0)
+                if on_recommendation_closed:
+                    on_recommendation_closed()
 
                 if response.stop:
                     on_log("LLM requested stop or low confidence.")
