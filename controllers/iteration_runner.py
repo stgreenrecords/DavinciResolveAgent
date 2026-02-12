@@ -20,6 +20,7 @@ class IterationRunner:
         self._executor = executor
         self._llm_client = llm_client
         self._logger = logger or logging.getLogger("app.iteration")
+        self._target_similarity = 0.95
 
     def run(
         self,
@@ -105,6 +106,10 @@ class IterationRunner:
                     response.raw,
                     response.raw.get("summary", ""),
                 )
+
+                if continuous and after_metrics.overall >= self._target_similarity:
+                    on_log(f"Similarity target reached ({after_metrics.overall:.3f}). Stopping automation.")
+                    break
 
                 if continuous and convergence_detector.add(after_metrics):
                     on_log("Convergence detected. Stopping automation.")

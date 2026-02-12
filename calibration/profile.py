@@ -16,7 +16,7 @@ class CalibrationProfile:
     _cached_config: dict | None = None
 
     @classmethod
-    def _load_coordinates(cls) -> tuple[dict, dict, dict]:
+    def _load_coordinates(cls) -> tuple[dict, dict, dict, dict]:
         if cls._cached_config is None:
             if CONTROLLER_CONFIG_PATH.exists():
                 try:
@@ -29,6 +29,8 @@ class CalibrationProfile:
         data = cls._cached_config or {}
         flat_targets = {}
         metadata = {}
+        roi_data = data.get("ROICoordinates", {})
+        
         # Sliders
         if "sliders" in data:
             for name, details in data["sliders"].items():
@@ -55,7 +57,7 @@ class CalibrationProfile:
                         "max": details.get("max"),
                         "defaultValue": details.get("defaultValue"),
                     }
-        return flat_targets, metadata, data
+        return flat_targets, metadata, data, roi_data
 
     @staticmethod
     def from_roi(roi: Roi, screen_size: tuple[int, int] | None = None) -> "CalibrationProfile":
@@ -64,7 +66,7 @@ class CalibrationProfile:
         center_x = roi.x + int(roi.width / 2)
         center_y = roi.y + int(roi.height / 2)
 
-        targets, metadata, full_config = CalibrationProfile._load_coordinates()
+        targets, metadata, full_config, _ = CalibrationProfile._load_coordinates()
         targets["roi_center"] = {"x": center_x, "y": center_y}
         metadata["roi_center"] = {"type": "point", "description": "ROI center"}
 
@@ -76,6 +78,25 @@ class CalibrationProfile:
             control_metadata=metadata,
             full_config=full_config,
         )
+
+    @staticmethod
+    def from_config() -> "CalibrationProfile" | None:
+        """Load calibration profile from controllerConfig.json if ROI is present."""
+        targets, metadata, full_config, roi_data = CalibrationProfile._load_coordinates()
+        if not roi_data or not roi_data.get("left_top") or not roi_data.get("right_bottom"):
+            return None
+        
+        try:
+            lt = roi_data["left_top"].split(",")
+            rb = roi_data["right_bottom"].split(",")
+            rx, ry = int(lt[0]), int(lt[1])
+            rw, rh = int(rb[0]) - rx, int(rb[1]) - ry
+            
+            roi = Roi(rx, ry, rw, rh)
+            # We don't have screen size easily here, but from_roi will handle it or use ROI size
+            return CalibrationProfile.from_roi(roi)
+        except (ValueError, IndexError, KeyError):
+            return None
 
     def update_roi(self, roi: Roi):
         """Update ROI while preserving other targets."""

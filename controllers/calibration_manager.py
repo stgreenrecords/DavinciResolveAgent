@@ -6,7 +6,6 @@ import logging
 from PySide6 import QtWidgets
 
 from app_ui.controller_calibrator import ControllerCalibratorDialog
-from app_ui.roi_selector import RoiSelectorDialog
 from automation.executor import ActionExecutor
 from calibration.profile import CalibrationProfile
 from config.constants import (
@@ -34,30 +33,6 @@ class CalibrationManager:
     def save(self, calibration: CalibrationProfile) -> None:
         """Persist calibration data to storage."""
         self._settings_store.save_calibration(calibration)
-
-    def calibrate_roi(
-        self, parent: QtWidgets.QWidget, calibration: CalibrationProfile | None
-    ) -> CalibrationProfile | None:
-        """Launch ROI selection dialog and update calibration."""
-        dialog = RoiSelectorDialog(parent)
-        if dialog.exec() != QtWidgets.QDialog.DialogCode.Accepted:
-            return calibration
-        roi = dialog.selected_roi
-        if roi is None:
-            return calibration
-        if roi.width <= 1 or roi.height <= 1:
-            QtWidgets.QMessageBox.warning(
-                parent,
-                "Invalid ROI",
-                ERROR_ROI_TOO_SMALL,
-            )
-            return calibration
-        if calibration:
-            calibration.update_roi(roi)
-        else:
-            calibration = CalibrationProfile.from_roi(roi)
-        self.save(calibration)
-        return calibration
 
     def calibrate_controllers(
         self,
@@ -99,6 +74,24 @@ class CalibrationManager:
                     config["fullResetButton"]["y"] = str(c["y"])
 
             CONTROLLER_CONFIG_PATH.write_text(json.dumps(config, indent=2))
+
+            # Update ROI if it was calibrated during this session
+            if dialog.roi_coordinates:
+                config["ROICoordinates"] = dialog.roi_coordinates
+                CONTROLLER_CONFIG_PATH.write_text(json.dumps(config, indent=2))
+                
+                # Update calibration profile with the new ROI
+                lt = dialog.roi_coordinates["left_top"].split(",")
+                rb = dialog.roi_coordinates["right_bottom"].split(",")
+                rx, ry = int(lt[0]), int(lt[1])
+                rw, rh = int(rb[0]) - rx, int(rb[1]) - ry
+                
+                new_roi = Roi(rx, ry, rw, rh)
+                if calibration:
+                    calibration.update_roi(new_roi)
+                else:
+                    calibration = CalibrationProfile.from_roi(new_roi)
+                self.save(calibration)
 
             if calibration:
                 calibration = CalibrationProfile.from_roi(

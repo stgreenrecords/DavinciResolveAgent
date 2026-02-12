@@ -13,6 +13,12 @@ class ControllerCalibratorDialog(QtWidgets.QDialog):
         self.current_index = 0
         self.coordinates = {}
 
+        # ROI selection state
+        self.roi_coordinates = None
+        self._origin = None
+        self._rubber = QtWidgets.QRubberBand(QtWidgets.QRubberBand.Shape.Rectangle, self)
+        self._rubber.setStyleSheet("border: 2px solid #3B82F6; background-color: rgba(59, 130, 246, 50);")
+
         self.label = QtWidgets.QLabel(self)
         self.label.setPixmap(pixmap)
         self.label.setScaledContents(True)
@@ -63,6 +69,8 @@ class ControllerCalibratorDialog(QtWidgets.QDialog):
             self.instr_text.setText(
                 f"Click the center of: \n{target_str}\n({self.current_index + 1}/{len(self.targets_to_calibrate)})"
             )
+        elif self.roi_coordinates is None:
+            self.instr_text.setText("Draw a rectangle around the DaVinci Resolve viewer area (ROI).")
         else:
             self.accept()
 
@@ -72,35 +80,68 @@ class ControllerCalibratorDialog(QtWidgets.QDialog):
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
         if event.button() == QtCore.Qt.MouseButton.LeftButton:
-            # We must map the click position back to the pixmap coordinates if we scale the label
-            # However, if we are in full screen and label fills it, it should be 1:1 if resolutions match.
-            # But let's be safe and calculate relative to label size.
-            label_pos = self.label.mapFromParent(event.position().toPoint())
+            if self.current_index < len(self.targets_to_calibrate):
+                # Target clicking mode
+                label_pos = self.label.mapFromParent(event.position().toPoint())
 
-            # If setScaledContents is true, we need to map the label_pos to the pixmap's original size
+                pix_w = self.pixmap.width()
+                pix_h = self.pixmap.height()
+                lbl_w = self.label.width()
+                lbl_h = self.label.height()
+
+                x = int(label_pos.x() * pix_w / lbl_w) if lbl_w > 0 else label_pos.x()
+                y = int(label_pos.y() * pix_h / lbl_h) if lbl_h > 0 else label_pos.y()
+
+                ttype, name, sub = self.targets_to_calibrate[self.current_index]
+
+                if ttype == "slider":
+                    if name not in self.coordinates:
+                        self.coordinates[name] = {}
+                    self.coordinates[name] = {"x": x, "y": y}
+                elif ttype == "button":
+                    self.coordinates[name] = {"x": x, "y": y}
+                else:
+                    if name not in self.coordinates:
+                        self.coordinates[name] = {}
+                    self.coordinates[name][sub] = {"x": x, "y": y}
+
+                self.current_index += 1
+                self._draw_mark(event.position().toPoint())
+                self._update_instructions()
+            else:
+                # ROI drawing mode
+                self._origin = event.position().toPoint()
+                self._rubber.setGeometry(QtCore.QRect(self._origin, QtCore.QSize()))
+                self._rubber.show()
+
+    def mouseMoveEvent(self, event: QtGui.QMouseEvent):
+        if self._origin is not None:
+            rect = QtCore.QRect(self._origin, event.position().toPoint()).normalized()
+            self._rubber.setGeometry(rect)
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
+        if event.button() == QtCore.Qt.MouseButton.LeftButton and self._origin is not None:
+            rect = self._rubber.geometry()
+            label_rect = self.label.rect()
+            
             pix_w = self.pixmap.width()
             pix_h = self.pixmap.height()
             lbl_w = self.label.width()
             lbl_h = self.label.height()
 
-            x = int(label_pos.x() * pix_w / lbl_w) if lbl_w > 0 else label_pos.x()
-            y = int(label_pos.y() * pix_h / lbl_h) if lbl_h > 0 else label_pos.y()
+            # Map rubber band rect to pixmap coordinates
+            rx = int(rect.x() * pix_w / lbl_w) if lbl_w > 0 else rect.x()
+            ry = int(rect.y() * pix_h / lbl_h) if lbl_h > 0 else rect.y()
+            rw = int(rect.width() * pix_w / lbl_w) if lbl_w > 0 else rect.width()
+            rh = int(rect.height() * pix_h / lbl_h) if lbl_h > 0 else rect.height()
 
-            ttype, name, sub = self.targets_to_calibrate[self.current_index]
-
-            if ttype == "slider":
-                if name not in self.coordinates:
-                    self.coordinates[name] = {}
-                self.coordinates[name] = {"x": x, "y": y}
-            elif ttype == "button":
-                self.coordinates[name] = {"x": x, "y": y}
-            else:
-                if name not in self.coordinates:
-                    self.coordinates[name] = {}
-                self.coordinates[name][sub] = {"x": x, "y": y}
-
-            self.current_index += 1
-            self._draw_mark(event.position().toPoint())
+            self.roi_coordinates = {
+                "left_top": f"{rx},{ry}",
+                "left_bottom": f"{rx},{ry + rh}",
+                "right_top": f"{rx + rw},{ry}",
+                "right_bottom": f"{rx + rw},{ry + rh}"
+            }
+            self._origin = None
             self._update_instructions()
 
     def _draw_mark(self, pos):

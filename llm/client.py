@@ -142,11 +142,27 @@ class LlmClient(LlmProvider):
             payload["temperature"] = 0.0
 
         self.logger.info("LLM test connection request")
-        response = self._session.post(endpoint, headers=headers, json=payload, timeout=(10, 30))
-        self.logger.info("LLM test response status %s", response.status_code)
-        self.logger.info("LLM test response body: %s", response.text)
-        response.raise_for_status()
-        return cast(dict[str, Any], response.json())
+        try:
+            response = self._session.post(endpoint, headers=headers, json=payload, timeout=(10, 30))
+            self.logger.info("LLM test response status %s", response.status_code)
+            self.logger.info("LLM test response body: %s", response.text)
+            response.raise_for_status()
+            return cast(dict[str, Any], response.json())
+        except requests.HTTPError as exc:
+            if exc.response is not None and exc.response.status_code == 429:
+                raise ValueError(
+                    "Rate limit exceeded (HTTP 429). Please check your OpenAI quota or wait a moment."
+                ) from exc
+            if exc.response is not None and exc.response.status_code == 401:
+                raise ValueError("Invalid API key (HTTP 401). Please check your credentials.") from exc
+            raise ValueError(f"Connection failed: {exc}") from exc
+        except requests.RequestException as exc:
+            error_str = str(exc)
+            if "429" in error_str:
+                raise ValueError(
+                    "Rate limit exceeded (HTTP 429). Please check your OpenAI quota or wait a moment."
+                ) from exc
+            raise ValueError(f"Network error: {exc}") from exc
 
     def request_actions(self, ctx: LlmRequestContext) -> LlmResponse:
         """Request action suggestions from the configured LLM endpoint."""
@@ -213,10 +229,15 @@ class LlmClient(LlmProvider):
                 break
             except requests.RequestException as exc:
                 last_error = exc
+                if "429" in str(exc):
+                    rate_limited = True
+                    continue
                 self.logger.exception("LLM request failed")
                 break
         if rate_limited:
-            raise ValueError("Rate limited by OpenAI API (HTTP 429). Please wait and try again.")
+            raise ValueError(
+                "Rate limit exceeded (HTTP 429). Please check your OpenAI quota or wait a moment."
+            )
         raise ValueError(f"Invalid LLM response after retries: {last_error}")
 
     def _build_payload(self, ctx: LlmRequestContext, model: str, retry_hint: str | None = None):

@@ -7,6 +7,7 @@ from PIL import Image
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from config.settings import get_app_settings
+from calibration.profile import CalibrationProfile
 from controllers.agent_controller import AgentController
 from controllers.calibration_manager import CalibrationManager
 from controllers.iteration_runner import IterationRunner
@@ -219,6 +220,7 @@ class MainWindow(QtWidgets.QMainWindow):
         task_queue: TaskQueue,
     ):
         super().__init__()
+        self.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint, True)
         self.logger = logging.getLogger("app.ui")
         self._app_settings = get_app_settings()
         self.setWindowTitle("Resolve Color Grade Agent (v1)")
@@ -511,19 +513,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         controls_grid = QtWidgets.QGridLayout()
 
-        self.calibrate_button_roi = QtWidgets.QPushButton("Take screenshot of viewfinder in Davinci Resolve")
-        self.calibrate_button_roi.setToolTip(
-            "Define the Region of Interest (ROI) in DaVinci Resolve.\n"
-            "Click to open a full-screen overlay, then drag to draw a box\n"
-            "around the video preview area you want to match."
-        )
-        self.calibrate_button_roi.clicked.connect(self._calibrate)
-
-        self.continuous_checkbox = QtWidgets.QCheckBox("Continuous Mode")
+        self.continuous_checkbox = QtWidgets.QCheckBox("Auto Continue")
         self.continuous_checkbox.setToolTip(
-            "If checked, the agent will keep running iterations until stopped or the goal is reached."
+            "If checked, the agent will keep running iterations until stopped\n"
+            "or the similarity reaches 95%."
         )
-        controls_grid.addWidget(self.continuous_checkbox, 0, 1)
+        controls_grid.addWidget(self.continuous_checkbox, 0, 0)
 
         self.start_button = QtWidgets.QPushButton("Start")
         self.start_button.setObjectName("primaryButton")
@@ -545,10 +540,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stop_button = QtWidgets.QPushButton("Stop")
         self.stop_button.setToolTip("Stop the automation immediately.\n" "Any in-progress actions will be canceled.")
 
-        controls_grid.addWidget(self.calibrate_button_roi, 0, 0)
-        controls_grid.addWidget(self.start_button, 0, 2)
-        controls_grid.addWidget(self.pause_button, 0, 3)
-        controls_grid.addWidget(self.stop_button, 0, 4)
+        controls_grid.addWidget(self.start_button, 0, 1)
+        controls_grid.addWidget(self.pause_button, 0, 2)
+        controls_grid.addWidget(self.stop_button, 0, 3)
         layout.addLayout(controls_grid)
 
         log_header = QtWidgets.QHBoxLayout()
@@ -591,6 +585,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self.model_edit.addItem(model_value)
         self.model_edit.setCurrentText(model_value)
         self.endpoint_edit.setText(settings.endpoint or self._app_settings.api_endpoint)
+        
+        # Load calibration from config if available
+        config_calibration = CalibrationProfile.from_config()
+        if config_calibration:
+            self.calibration = config_calibration
+            self.logger.info("Calibration loaded from controllerConfig.json")
+
         self.logger.info("Settings loaded")
         QtCore.QTimer.singleShot(0, self._refresh_models)
 
@@ -685,18 +686,6 @@ class MainWindow(QtWidgets.QMainWindow):
         qimage = QtGui.QImage(data, image.width, image.height, image.width * 3, QtGui.QImage.Format.Format_RGB888)
         return qimage.copy()
 
-    def _calibrate(self):
-        self.hide()
-        try:
-            calibration = self.calibration_manager.calibrate_roi(self, self.calibration)
-            if calibration:
-                self.calibration = calibration
-                self._append_log(f"Calibrated ROI: {self.calibration.roi}")
-                self.logger.info("Calibrated ROI: %s", self.calibration.roi)
-                self._update_button_states()
-        finally:
-            self.show()
-
     def _is_calibration_complete(self) -> bool:
         """Check if minimum calibration requirements are met to start automation."""
         return self.reference_image_path is not None and self.calibration is not None
@@ -742,8 +731,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 f"Cannot start: Missing {', '.join(missing)}.\n\n"
                 "To enable:\n"
                 "1. Upload a reference image\n"
-                "2. Calibrate ROI (draw box around video preview)\n"
-                "3. Optionally calibrate controls for better accuracy"
+                "2. Calibrate Controllers (includes ROI drawing)\n"
             )
         else:
             self.start_button.setToolTip(
@@ -787,7 +775,6 @@ class MainWindow(QtWidgets.QMainWindow):
         calibration_dict = self.calibration.to_dict() if self.calibration else {}
         self.agent_controller.log_session_info(settings_dict, calibration_dict)
 
-        self.hide()
         self.start_button.setEnabled(False)
         self.continuous_checkbox.setEnabled(False)
         self.logger.info("Starting automation (continuous=%s)", self.continuous_checkbox.isChecked())
@@ -1151,6 +1138,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
 def run_app(window: MainWindow):
     app = QtWidgets.QApplication([])
-    window.resize(700, 620)
+    window.resize(500, 620)
     window.show()
     app.exec()
