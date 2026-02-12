@@ -1,8 +1,8 @@
 import json
-from pathlib import Path
 from dataclasses import dataclass
 
-from app_ui.roi_selector import Roi
+from config.paths import CONTROLLER_CONFIG_PATH
+from core.roi import Roi
 
 
 @dataclass
@@ -13,45 +13,49 @@ class CalibrationProfile:
     targets: dict
     control_metadata: dict | None = None
     full_config: dict | None = None  # Store the full controllerConfig.json structure
+    _cached_config: dict | None = None
 
-    @staticmethod
-    def _load_coordinates() -> tuple[dict, dict, dict]:
-        config_path = Path(__file__).resolve().parent.parent / "controllerConfig.json"
-        if config_path.exists():
-            try:
-                data = json.loads(config_path.read_text())
-                flat_targets = {}
-                metadata = {}
-                # Sliders
-                if "sliders" in data:
-                    for name, details in data["sliders"].items():
-                        if details.get("x") != "" and details.get("y") != "":
-                            flat_targets[name] = {"x": int(details["x"]), "y": int(details["y"])}
-                        metadata[name] = {
-                            "type": "slider",
-                            "description": name,
-                            "min": details.get("min"),
-                            "max": details.get("max"),
-                            "defaultValue": details.get("defaultValue")
-                        }
-                # Wheels
-                if "wheels" in data:
-                    for wheel_name, components in data["wheels"].items():
-                        for comp_name, details in components.items():
-                            target_name = f"{wheel_name}_{comp_name}"
-                            if details.get("x") != "" and details.get("y") != "":
-                                flat_targets[target_name] = {"x": int(details["x"]), "y": int(details["y"])}
-                            metadata[target_name] = {
-                                "type": "wheel_component",
-                                "description": f"{wheel_name} {comp_name}",
-                                "min": details.get("min"),
-                                "max": details.get("max"),
-                                "defaultValue": details.get("defaultValue")
-                            }
-                return flat_targets, metadata, data
-            except Exception:
-                pass
-        return {}, {}, {}
+    @classmethod
+    def _load_coordinates(cls) -> tuple[dict, dict, dict]:
+        if cls._cached_config is None:
+            if CONTROLLER_CONFIG_PATH.exists():
+                try:
+                    cls._cached_config = json.loads(CONTROLLER_CONFIG_PATH.read_text())
+                except Exception:
+                    cls._cached_config = {}
+            else:
+                cls._cached_config = {}
+
+        data = cls._cached_config or {}
+        flat_targets = {}
+        metadata = {}
+        # Sliders
+        if "sliders" in data:
+            for name, details in data["sliders"].items():
+                if details.get("x") != "" and details.get("y") != "":
+                    flat_targets[name] = {"x": int(details["x"]), "y": int(details["y"])}
+                metadata[name] = {
+                    "type": "slider",
+                    "description": name,
+                    "min": details.get("min"),
+                    "max": details.get("max"),
+                    "defaultValue": details.get("defaultValue"),
+                }
+        # Wheels
+        if "wheels" in data:
+            for wheel_name, components in data["wheels"].items():
+                for comp_name, details in components.items():
+                    target_name = f"{wheel_name}_{comp_name}"
+                    if details.get("x") != "" and details.get("y") != "":
+                        flat_targets[target_name] = {"x": int(details["x"]), "y": int(details["y"])}
+                    metadata[target_name] = {
+                        "type": "wheel_component",
+                        "description": f"{wheel_name} {comp_name}",
+                        "min": details.get("min"),
+                        "max": details.get("max"),
+                        "defaultValue": details.get("defaultValue"),
+                    }
+        return flat_targets, metadata, data
 
     @staticmethod
     def from_roi(roi: Roi, screen_size: tuple[int, int] | None = None) -> "CalibrationProfile":
@@ -59,7 +63,7 @@ class CalibrationProfile:
         height = screen_size[1] if screen_size else roi.height
         center_x = roi.x + int(roi.width / 2)
         center_y = roi.y + int(roi.height / 2)
-        
+
         targets, metadata, full_config = CalibrationProfile._load_coordinates()
         targets["roi_center"] = {"x": center_x, "y": center_y}
         metadata["roi_center"] = {"type": "point", "description": "ROI center"}
@@ -70,7 +74,7 @@ class CalibrationProfile:
             screen_height=height,
             targets=targets,
             control_metadata=metadata,
-            full_config=full_config
+            full_config=full_config,
         )
 
     def update_roi(self, roi: Roi):

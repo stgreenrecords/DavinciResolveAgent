@@ -1,5 +1,5 @@
-from PIL import Image
 import mss
+from PIL import Image
 
 
 def capture_roi(roi: dict) -> Image.Image:

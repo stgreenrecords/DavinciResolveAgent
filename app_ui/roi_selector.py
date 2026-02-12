@@ -1,27 +1,19 @@
-from dataclasses import dataclass
-
 from PySide6 import QtCore, QtGui, QtWidgets
 
-
-@dataclass
-class Roi:
-    x: int
-    y: int
-    width: int
-    height: int
+from core.roi import Roi
 
 
 class RoiSelectorDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Select ROI")
-        self.setWindowFlag(QtCore.Qt.WindowStaysOnTopHint)
-        self.setWindowFlag(QtCore.Qt.FramelessWindowHint)
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-        self.setWindowState(QtCore.Qt.WindowFullScreen)
-        self.setCursor(QtCore.Qt.CrossCursor)
+        self.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint)
+        self.setWindowFlag(QtCore.Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setWindowState(QtCore.Qt.WindowState.WindowFullScreen)
+        self.setCursor(QtCore.Qt.CursorShape.CrossCursor)
         self._origin = None
-        self._rubber = QtWidgets.QRubberBand(QtWidgets.QRubberBand.Rectangle, self)
+        self._rubber = QtWidgets.QRubberBand(QtWidgets.QRubberBand.Shape.Rectangle, self)
         self._rubber.setStyleSheet("border: 2px solid #00AEEF;")
         self.selected_roi: Roi | None = None
 
@@ -31,7 +23,7 @@ class RoiSelectorDialog(QtWidgets.QDialog):
         painter.fillRect(self.rect(), QtGui.QColor(0, 0, 0, 50))
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
-        if event.button() == QtCore.Qt.LeftButton:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
             self._origin = event.position().toPoint()
             self._rubber.setGeometry(QtCore.QRect(self._origin, QtCore.QSize()))
             self._rubber.show()
@@ -43,7 +35,7 @@ class RoiSelectorDialog(QtWidgets.QDialog):
         self._rubber.setGeometry(rect)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
-        if event.button() == QtCore.Qt.LeftButton and self._origin is not None:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton and self._origin is not None:
             rect = self._rubber.geometry()
             self.selected_roi = Roi(rect.x(), rect.y(), rect.width(), rect.height())
             self.accept()

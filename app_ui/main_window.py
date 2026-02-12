@@ -1,23 +1,18 @@
-import json
 import logging
-import threading
-import time
+import os
+import subprocess
 from pathlib import Path
 
 from PIL import Image
-from PIL.ImageQt import ImageQt
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from automation.executor import ActionExecutor
-from calibration.profile import CalibrationProfile
-from llm.client import LlmClient, LlmRequestContext
-from app_logging.session_logger import SessionLogger
-from storage.settings import SettingsStore
-from vision.metrics import SimilarityMetrics, compute_metrics
-from vision.screenshot import capture_roi
-from app_ui.roi_selector import RoiSelectorDialog, Roi
-from app_ui.controller_calibrator import ControllerCalibratorDialog
-import subprocess, os
+from config.settings import get_app_settings
+from controllers.agent_controller import AgentController
+from controllers.calibration_manager import CalibrationManager
+from controllers.iteration_runner import IterationRunner
+from controllers.settings_manager import SettingsManager
+from controllers.task_queue import TaskQueue
+from vision.metrics import SimilarityMetrics
 
 
 class _LogEmitter(QtCore.QObject):
@@ -58,10 +53,17 @@ class _InfoDialog(QtWidgets.QDialog):
 
         icon = QtWidgets.QLabel()
         if self.style():
-            pixmap = self.style().standardPixmap(QtWidgets.QStyle.SP_MessageBoxInformation)
+            pixmap = self.style().standardPixmap(QtWidgets.QStyle.StandardPixmap.SP_MessageBoxInformation)
             if pixmap and not pixmap.isNull():
-                icon.setPixmap(pixmap.scaled(32, 32, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
-        
+                icon.setPixmap(
+                    pixmap.scaled(
+                        32,
+                        32,
+                        QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+                        QtCore.Qt.TransformationMode.SmoothTransformation,
+                    )
+                )
+
         text = QtWidgets.QLabel(message)
         text.setStyleSheet("font-size: 14px;")
         text.setWordWrap(True)
@@ -105,9 +107,16 @@ class _ConfirmDialog(QtWidgets.QDialog):
 
         icon = QtWidgets.QLabel()
         if self.style():
-            pixmap = self.style().standardPixmap(QtWidgets.QStyle.SP_MessageBoxQuestion)
+            pixmap = self.style().standardPixmap(QtWidgets.QStyle.StandardPixmap.SP_MessageBoxQuestion)
             if pixmap and not pixmap.isNull():
-                icon.setPixmap(pixmap.scaled(32, 32, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+                icon.setPixmap(
+                    pixmap.scaled(
+                        32,
+                        32,
+                        QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+                        QtCore.Qt.TransformationMode.SmoothTransformation,
+                    )
+                )
 
         text = QtWidgets.QLabel(message)
         text.setStyleSheet("font-size: 14px;")
@@ -137,25 +146,33 @@ class _ConfirmDialog(QtWidgets.QDialog):
 class MainWindow(QtWidgets.QMainWindow):
     models_refreshed = QtCore.Signal(list)
     iteration_updated = QtCore.Signal(int, str, object, str, str)
+    reference_preview_ready = QtCore.Signal(object, object, str)
 
-    def __init__(self):
+    def __init__(
+        self,
+        settings_manager: SettingsManager,
+        calibration_manager: CalibrationManager,
+        agent_controller: AgentController,
+        task_queue: TaskQueue,
+    ):
         super().__init__()
         self.logger = logging.getLogger("app.ui")
+        self._app_settings = get_app_settings()
         self.setWindowTitle("Resolve Color Grade Agent (v1)")
-        self.settings_store = SettingsStore()
-        self.calibration = self.settings_store.load_calibration()
+        self.settings_manager = settings_manager
+        self.calibration_manager = calibration_manager
+        self.agent_controller = agent_controller
+        self.task_queue = task_queue
+        self.calibration = self.calibration_manager.load()
         self.reference_image_path: Path | None = None
-        self.session_logger: SessionLogger | None = None
-        self.executor = ActionExecutor(self.on_stop_triggered, log_callback=self._append_log)
-        self.llm_client = LlmClient(self.settings_store)
-        self.iteration = 0
-        self.last_metrics: SimilarityMetrics | None = None
-        self.current_state: dict = {}
         self._build_ui()
         self._install_ui_logger()
+        self.agent_controller.set_stop_callback(self.on_stop_triggered)
+        self.agent_controller.set_log_callback(self._append_log)
         self._apply_theme()
         self.models_refreshed.connect(self._apply_models)
         self.iteration_updated.connect(self._update_status)
+        self.reference_preview_ready.connect(self._apply_reference_preview)
         self._load_settings()
         self._update_button_states()
 
@@ -236,7 +253,7 @@ class MainWindow(QtWidgets.QMainWindow):
         header = QtWidgets.QHBoxLayout()
         brand_box = QtWidgets.QHBoxLayout()
         self.brand_icon = QtWidgets.QLabel("GA")
-        self.brand_icon.setAlignment(QtCore.Qt.AlignCenter)
+        self.brand_icon.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.brand_icon.setFixedSize(36, 36)
         self.brand_icon.setStyleSheet("background: #12324A; color: #137fec; border-radius: 10px; font-weight: 700;")
         brand_box.addWidget(self.brand_icon)
@@ -262,8 +279,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.engine_toggle.setText("AGENT SETTINGS")
         self.engine_toggle.setCheckable(True)
         self.engine_toggle.setChecked(True)
-        self.engine_toggle.setArrowType(QtCore.Qt.DownArrow)
-        self.engine_toggle.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.engine_toggle.setArrowType(QtCore.Qt.ArrowType.DownArrow)
+        self.engine_toggle.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.engine_toggle.clicked.connect(self._toggle_engine_section)
         self.engine_toggle.setStyleSheet(
             "color: #FFFFFF; background: #000000; font-weight: 700; letter-spacing: 2px; font-size: 10px; "
@@ -295,7 +312,7 @@ class MainWindow(QtWidgets.QMainWindow):
         api_label.setStyleSheet("color: #94a3b8; font-size: 10px; font-weight: 600;")
         agent_layout.addWidget(api_label)
         self.api_key_edit = QtWidgets.QLineEdit()
-        self.api_key_edit.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.api_key_edit.setEchoMode(QtWidgets.QLineEdit.EchoMode.Password)
         agent_layout.addWidget(self.api_key_edit)
 
         form_row = QtWidgets.QHBoxLayout()
@@ -312,16 +329,14 @@ class MainWindow(QtWidgets.QMainWindow):
         form_row.addLayout(endpoint_col, 1)
         agent_layout.addLayout(form_row)
 
-
         calib_test_row = QtWidgets.QHBoxLayout()
         self.test_button = QtWidgets.QPushButton("Test Connection")
         self.test_button.setObjectName("primaryButton")
         self.test_button.setToolTip(
-            "Test the connection to the AI model API.\n"
-            "Verifies your API key and endpoint are working correctly."
+            "Test the connection to the AI model API.\n" "Verifies your API key and endpoint are working correctly."
         )
         self.test_button.clicked.connect(self._test_connection)
-        
+
         self.calibrate_button = QtWidgets.QPushButton("Calibrate Controllers")
         self.calibrate_button.setObjectName("calibrateButton")
         self.calibrate_button.clicked.connect(self._calibrate_controllers)
@@ -334,7 +349,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "Ensure DaVinci Resolve is open and visible."
         )
         self.run_tests_button.clicked.connect(self._run_tests)
-        
+
         calib_test_row.addWidget(self.test_button, 1)
         calib_test_row.addWidget(self.calibrate_button, 1)
         calib_test_row.addWidget(self.run_tests_button, 1)
@@ -365,7 +380,7 @@ class MainWindow(QtWidgets.QMainWindow):
         ref_grid.addWidget(self.reference_upload, 0, 0)
 
         self.reference_preview_large = QtWidgets.QLabel("No reference selected")
-        self.reference_preview_large.setAlignment(QtCore.Qt.AlignCenter)
+        self.reference_preview_large.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.reference_preview_large.setObjectName("previewTile")
         self.reference_preview_large.setFixedSize(320, 180)
         ref_grid.addWidget(self.reference_preview_large, 0, 1, 2, 1)
@@ -376,7 +391,7 @@ class MainWindow(QtWidgets.QMainWindow):
         info_col.addWidget(self.reference_label)
         self.reference_preview = QtWidgets.QLabel()
         self.reference_preview.setFixedSize(64, 64)
-        self.reference_preview.setAlignment(QtCore.Qt.AlignCenter)
+        self.reference_preview.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.reference_preview.setStyleSheet("border: 1px solid #1f2a37; border-radius: 8px; background: #0b1118;")
         info_col.addWidget(self.reference_preview)
         self.reference_meta_label = QtWidgets.QLabel("-")
@@ -409,8 +424,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rollback_button = QtWidgets.QPushButton("Rollback Step")
         self.rollback_button.setObjectName("linkButton")
         self.rollback_button.setToolTip(
-            "Undo the last action performed by the agent.\n"
-            "Attempts to reverse the most recent control adjustment."
+            "Undo the last action performed by the agent.\n" "Attempts to reverse the most recent control adjustment."
         )
         live_header.addWidget(self.rollback_button)
         live_header.addSpacing(12)
@@ -435,7 +449,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.thumbnail_label = QtWidgets.QLabel()
         self.thumbnail_label.setFixedHeight(220)
-        self.thumbnail_label.setAlignment(QtCore.Qt.AlignCenter)
+        self.thumbnail_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.thumbnail_label.setStyleSheet("border: 1px solid #1f2a37; border-radius: 12px; background: #0b1118;")
         layout.addWidget(self.thumbnail_label)
 
@@ -450,7 +464,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.calibrate_button_roi.clicked.connect(self._calibrate)
 
         self.continuous_checkbox = QtWidgets.QCheckBox("Continuous Mode")
-        self.continuous_checkbox.setToolTip("If checked, the agent will keep running iterations until stopped or the goal is reached.")
+        self.continuous_checkbox.setToolTip(
+            "If checked, the agent will keep running iterations until stopped or the goal is reached."
+        )
         controls_grid.addWidget(self.continuous_checkbox, 0, 1)
 
         self.start_button = QtWidgets.QPushButton("Start")
@@ -471,10 +487,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
         self.stop_button = QtWidgets.QPushButton("Stop")
-        self.stop_button.setToolTip(
-            "Stop the automation immediately.\n"
-            "Any in-progress actions will be canceled."
-        )
+        self.stop_button.setToolTip("Stop the automation immediately.\n" "Any in-progress actions will be canceled.")
 
         controls_grid.addWidget(self.calibrate_button_roi, 0, 0)
         controls_grid.addWidget(self.start_button, 0, 2)
@@ -515,13 +528,13 @@ class MainWindow(QtWidgets.QMainWindow):
             root_logger.addHandler(handler)
 
     def _load_settings(self):
-        settings = self.settings_store.load_settings()
+        settings = self.settings_manager.load()
         self.api_key_edit.setText(settings.api_key or "")
-        model_value = settings.model or "gpt-4o-mini"
+        model_value = settings.model or self._app_settings.default_model
         if self.model_edit.findText(model_value) == -1:
             self.model_edit.addItem(model_value)
         self.model_edit.setCurrentText(model_value)
-        self.endpoint_edit.setText(settings.endpoint or "https://api.openai.com/v1/chat/completions")
+        self.endpoint_edit.setText(settings.endpoint or self._app_settings.api_endpoint)
         self.logger.info("Settings loaded")
         QtCore.QTimer.singleShot(0, self._refresh_models)
 
@@ -530,74 +543,31 @@ class MainWindow(QtWidgets.QMainWindow):
         super().closeEvent(event)
 
     def _save_settings(self):
-        self.settings_store.save_settings(
-            api_key=self.api_key_edit.text().strip(),
-            model=self.model_edit.currentText().strip(),
-            endpoint=self.endpoint_edit.text().strip(),
-        )
-        self.logger.info("Settings saved")
+        api_key = self.api_key_edit.text().strip()
+        model = self.model_edit.currentText().strip()
+        endpoint = self.endpoint_edit.text().strip()
+        try:
+            self.settings_manager.save(api_key=api_key, model=model, endpoint=endpoint)
+        except RuntimeError as exc:
+            dialog = _ConfirmDialog(
+                self,
+                "Secure key storage is unavailable. Storing the API key in plain text is unsafe."
+                "\n\nDo you want to proceed with an insecure save?",
+            )
+            if dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+                self.settings_manager.save(api_key=api_key, model=model, endpoint=endpoint, allow_insecure=True)
+                self.logger.warning("Settings saved with insecure API key storage.")
+            else:
+                self.logger.warning("Settings not saved: %s", exc)
 
     def _calibrate_controllers(self):
-        try:
-            # 1. Try to focus Resolve
-            self._append_log("Focusing DaVinci Resolve...")
-            if not self.executor._try_focus():
-                 self._append_log("Warning: Could not automatically focus DaVinci Resolve.")
-            
-            # 2. Take full screenshot using Qt to handle DPI scaling correctly
-            screen = QtWidgets.QApplication.primaryScreen()
-            if not screen:
-                self._append_log("Error: Primary screen not found")
-                return
-            pixmap = screen.grabWindow(0)
-            
-            # 3. Load config
-            config_path = Path(__file__).resolve().parent.parent / "controllerConfig.json"
-            if not config_path.exists():
-                msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Critical, "Error", "controllerConfig.json not found", parent=self)
-                msg.setStyleSheet(self.styleSheet())
-                msg.exec()
-                return
-            config = json.loads(config_path.read_text())
-            
-            # 4. Open calibrator
-            dialog = ControllerCalibratorDialog(pixmap, config, self)
-            if dialog.exec() == QtWidgets.QDialog.Accepted:
-                # 5. Update config with new coordinates
-                coords = dialog.coordinates
-                for name, c in coords.items():
-                    if name in config["sliders"]:
-                        config["sliders"][name]["x"] = str(c["x"])
-                        config["sliders"][name]["y"] = str(c["y"])
-                    elif name in config["wheels"]:
-                        for comp_name, comp_c in c.items():
-                            if comp_name in config["wheels"][name]:
-                                config["wheels"][name][comp_name]["x"] = str(comp_c["x"])
-                                config["wheels"][name][comp_name]["y"] = str(comp_c["y"])
-                    elif name == "fullResetButton":
-                        config["fullResetButton"]["x"] = str(c["x"])
-                        config["fullResetButton"]["y"] = str(c["y"])
-                
-                # Save updated config
-                config_path.write_text(json.dumps(config, indent=2))
-                
-                # Reload calibration profile if it exists
-                if self.calibration:
-                    self.calibration = CalibrationProfile.from_roi(
-                        Roi(self.calibration.roi["x"], self.calibration.roi["y"], self.calibration.roi["width"], self.calibration.roi["height"]),
-                        (self.calibration.screen_width, self.calibration.screen_height)
-                    )
-                    self.settings_store.save_calibration(self.calibration)
-                
-                self._update_button_states()
-                msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, "Success", "Controllers calibrated successfully", parent=self)
-                msg.setStyleSheet(self.styleSheet())
-                msg.exec()
-        except Exception as e:
-            self.logger.exception("Calibration failed")
-            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Critical, "Error", f"Calibration failed: {e}", parent=self)
-            msg.setStyleSheet(self.styleSheet())
-            msg.exec()
+        self._append_log("Focusing DaVinci Resolve...")
+        self.calibration = self.calibration_manager.calibrate_controllers(
+            parent=self,
+            executor=self.agent_controller.executor,
+            calibration=self.calibration,
+        )
+        self._update_button_states()
 
     def _select_reference(self):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -614,50 +584,57 @@ class MainWindow(QtWidgets.QMainWindow):
         self._update_button_states()
 
     def _update_reference_preview(self, path: Path):
-        try:
-            with Image.open(path) as img:
-                width, height = img.size
-                img = img.convert("RGB")
-                thumb = img.copy()
-                thumb.thumbnail((64, 64), Image.LANCZOS)
-                qimage_thumb = QtGui.QImage(thumb.tobytes(), thumb.width, thumb.height, QtGui.QImage.Format_RGB888)
-                thumb_pixmap = QtGui.QPixmap.fromImage(qimage_thumb.copy())
-                self.reference_preview.setPixmap(thumb_pixmap)
+        self.reference_meta_label.setText("Loading preview...")
+        self.task_queue.run(lambda: self._load_reference_preview(path))
 
-                qimage_full = QtGui.QImage(img.tobytes(), img.width, img.height, QtGui.QImage.Format_RGB888)
-                full_pixmap = QtGui.QPixmap.fromImage(qimage_full.copy())
-                scaled = full_pixmap.scaled(
-                    self.reference_preview_large.size(),
-                    QtCore.Qt.KeepAspectRatio,
-                    QtCore.Qt.SmoothTransformation,
+    def _load_reference_preview(self, path: Path) -> None:
+        try:
+            with Image.open(path) as opened:
+                img = opened.convert("RGB")
+                width, height = img.size
+                thumb = img.copy()
+                resample = (
+                    Image.Resampling.LANCZOS
+                    if hasattr(Image, "Resampling")
+                    else Image.BICUBIC  # type: ignore[attr-defined]
                 )
-                self.reference_preview_large.setPixmap(scaled)
+                thumb.thumbnail((64, 64), resample)
+                thumb_image = self._pil_to_qimage(thumb)
+                full_image = self._pil_to_qimage(img)
             size_mb = path.stat().st_size / (1024 * 1024)
-            self.reference_meta_label.setText(f"{width} x {height} • {size_mb:.1f}MB")
+            meta = f"{width} x {height} • {size_mb:.1f}MB"
+            self.reference_preview_ready.emit(thumb_image, full_image, meta)
         except Exception as exc:
-            self.reference_meta_label.setText("Preview unavailable")
             self.logger.warning("Failed to load reference preview: %s", exc)
+            self.reference_preview_ready.emit(None, None, "Preview unavailable")
+
+    @QtCore.Slot(object, object, str)
+    def _apply_reference_preview(self, thumb_image, full_image, meta: str) -> None:
+        if isinstance(thumb_image, QtGui.QImage):
+            thumb_pixmap = QtGui.QPixmap.fromImage(thumb_image)
+            self.reference_preview.setPixmap(thumb_pixmap)
+        if isinstance(full_image, QtGui.QImage):
+            full_pixmap = QtGui.QPixmap.fromImage(full_image)
+            scaled = full_pixmap.scaled(
+                self.reference_preview_large.size(),
+                QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+                QtCore.Qt.TransformationMode.SmoothTransformation,
+            )
+            self.reference_preview_large.setPixmap(scaled)
+        self.reference_meta_label.setText(meta)
+
+    @staticmethod
+    def _pil_to_qimage(image: Image.Image) -> QtGui.QImage:
+        data = image.tobytes()
+        qimage = QtGui.QImage(data, image.width, image.height, image.width * 3, QtGui.QImage.Format.Format_RGB888)
+        return qimage.copy()
 
     def _calibrate(self):
         self.hide()
         try:
-            dialog = RoiSelectorDialog(self)
-            if dialog.exec() == QtWidgets.QDialog.Accepted:
-                roi = dialog.selected_roi
-                if roi is None:
-                    return
-                if roi.width <= 1 or roi.height <= 1:
-                    QtWidgets.QMessageBox.warning(
-                        self,
-                        "Invalid ROI",
-                        "ROI size is too small. Drag to select a larger area.",
-                    )
-                    return
-                if self.calibration:
-                    self.calibration.update_roi(roi)
-                else:
-                    self.calibration = CalibrationProfile.from_roi(roi)
-                self.settings_store.save_calibration(self.calibration)
+            calibration = self.calibration_manager.calibrate_roi(self, self.calibration)
+            if calibration:
+                self.calibration = calibration
                 self._append_log(f"Calibrated ROI: {self.calibration.roi}")
                 self.logger.info("Calibrated ROI: %s", self.calibration.roi)
                 self._update_button_states()
@@ -670,22 +647,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _is_controllers_calibrated(self) -> bool:
         """Check if controllers have been calibrated."""
-        config_path = Path(__file__).resolve().parent.parent / "controllerConfig.json"
-        if not config_path.exists():
-            return False
-        try:
-            config = json.loads(config_path.read_text())
-            # Check if at least one x/y is present and not empty
-            for slider in config.get("sliders", {}).values():
-                if slider.get("x") and slider.get("y"):
-                    return True
-            for wheel in config.get("wheels", {}).values():
-                for comp in wheel.values():
-                    if comp.get("x") and comp.get("y"):
-                        return True
-            return False
-        except Exception:
-            return False
+        return self.calibration_manager.is_controllers_calibrated()
 
     def _update_button_states(self):
         """Update button enabled/disabled states based on current configuration."""
@@ -694,18 +656,20 @@ class MainWindow(QtWidgets.QMainWindow):
 
         is_calibrated = self._is_controllers_calibrated()
         self.run_tests_button.setEnabled(is_calibrated)
-        
+
         # Update Calibrate Controllers button based on status
         if is_calibrated:
             self.calibrate_button.setText("ReCalibrate Controllers")
             self.calibrate_button.setStyleSheet(
-                "background: #374151; border: 1px solid #374151; color: #FFFFFF; border-radius: 16px; padding: 10px 16px; font-weight: 600;"
+                "background: #374151; border: 1px solid #374151; color: #FFFFFF; "
+                "border-radius: 16px; padding: 10px 16px; font-weight: 600;"
             )
             self.run_tests_button.setToolTip("Run the end-to-end controller test suite (sliders & wheels).")
         else:
             self.calibrate_button.setText("Calibrate Controllers")
             self.calibrate_button.setStyleSheet(
-                "background: #EF4444; border: 1px solid #EF4444; color: #FFFFFF; border-radius: 16px; padding: 10px 16px; font-weight: 600;"
+                "background: #EF4444; border: 1px solid #EF4444; color: #FFFFFF; "
+                "border-radius: 16px; padding: 10px 16px; font-weight: 600;"
             )
             self.run_tests_button.setToolTip("Cannot run tests: Controllers not calibrated yet.")
 
@@ -735,16 +699,20 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _confirm_first_run(self) -> bool:
         dialog = _ConfirmDialog(self, "This will control your mouse/keyboard. Continue?")
-        return dialog.exec() == QtWidgets.QDialog.Accepted
+        return dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted
 
     def _start_once(self):
         if self.reference_image_path is None:
-            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, "Missing reference", "Upload a reference image first.", parent=self)
+            msg = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Icon.Warning, "Missing reference", "Upload a reference image first.", parent=self
+            )
             msg.setStyleSheet(self.styleSheet())
             msg.exec()
             return
         if self.calibration is None:
-            msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Warning, "Missing calibration", "Calibrate ROI first.", parent=self)
+            msg = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Icon.Warning, "Missing calibration", "Calibrate ROI first.", parent=self
+            )
             msg.setStyleSheet(self.styleSheet())
             msg.exec()
             return
@@ -753,113 +721,70 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         self._save_settings()
 
-        if self.session_logger is None:
-            self.session_logger = SessionLogger()
-        
         # Log session info (settings and calibration)
-        settings = self.settings_store.load_settings()
+        self.agent_controller.ensure_session_logger()
+        settings = self.settings_manager.load()
         settings_dict = {
             "model": settings.model,
             "endpoint": settings.endpoint,
         }
         calibration_dict = self.calibration.to_dict() if self.calibration else {}
-        self.session_logger.log_session_info(settings_dict, calibration_dict)
+        self.agent_controller.log_session_info(settings_dict, calibration_dict)
 
         self.hide()
         self.start_button.setEnabled(False)
         self.continuous_checkbox.setEnabled(False)
         self.logger.info("Starting automation (continuous=%s)", self.continuous_checkbox.isChecked())
-        thread = threading.Thread(target=self._run_iteration, daemon=True)
-        thread.start()
+        self.task_queue.run(self._run_iteration)
 
     def _run_iteration(self):
         try:
-            self.executor.ensure_safe_mode()
-            while True:
-                if self.executor._stop:
-                    break
-                
-                roi_image = capture_roi(self.calibration.roi)
-                ref_path = self.reference_image_path
-                if ref_path is None:
-                    break
-                
-                metrics = compute_metrics(ref_path, roi_image)
-                
-                # Collect current state of controllers from calibration metadata or tracked state
-                if not self.current_state:
-                    if self.calibration and self.calibration.control_metadata:
-                        for name, meta in self.calibration.control_metadata.items():
-                            if name != "roi_center":
-                                self.current_state[name] = float(meta.get("defaultValue", 0))
+            ref_path = self.reference_image_path
+            if ref_path is None:
+                return
+            calibration = self.calibration
+            if calibration is None:
+                return
 
-                ctx = LlmRequestContext(
-                    reference_image_path=ref_path,
-                    current_image=roi_image,
-                    previous_image=None,
-                    metrics=metrics,
-                    calibration=self.calibration,
-                    instructions=self.instructions_edit.toPlainText().strip(),
-                    current_state=self.current_state
-                )
-                
-                self.logger.info("Requesting LLM actions")
-                response = self.llm_client.request_actions(ctx)
-                
-                if response.stop:
-                    QtCore.QMetaObject.invokeMethod(
-                        self,
-                        "_append_log",
-                        QtCore.Qt.QueuedConnection,
-                        QtCore.Q_ARG(str, "LLM requested stop or low confidence."),
-                    )
-                    break
-                
-                actions = response.actions
-                self.logger.info("Executing %d actions", len(actions))
-                self.executor.execute_actions(actions, self.calibration, self.iteration, self.session_logger)
-                
-                # Update tracked state based on executed actions
-                for action in actions:
-                    if action.get("type") == "set_slider" and action.get("target") in self.current_state:
-                        self.current_state[action["target"]] = action["value"]
-                
-                after_image = capture_roi(self.calibration.roi)
-                after_metrics = compute_metrics(ref_path, after_image)
-                self.iteration += 1
-                self.last_metrics = after_metrics
-                
-                if self.session_logger:
-                    self.session_logger.log_iteration(self.iteration, roi_image, after_image, metrics, response)
-                
-                after_payload = (after_image.tobytes(), (after_image.width, after_image.height))
+            def on_iteration_updated(iteration: int, metrics: SimilarityMetrics, image, raw: dict, summary: str):
                 self.iteration_updated.emit(
-                    self.iteration,
-                    f"{after_metrics.overall:.3f}",
-                    after_payload,
-                    json.dumps(response.raw, indent=2),
-                    response.raw.get("summary", "")
+                    iteration,
+                    f"{metrics.overall:.3f}",
+                    image,
+                    IterationRunner.format_response_payload(raw),
+                    summary,
                 )
 
-                if not self.continuous_checkbox.isChecked():
-                    break
-                    
-                # Small delay between iterations in continuous mode
-                time.sleep(1.0)
-                
+            def on_log(message: str):
+                QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
+                    self,
+                    "_append_log",
+                    QtCore.Qt.ConnectionType.QueuedConnection,
+                    QtCore.Q_ARG(str, message),
+                )
+
+            self.agent_controller.run_iteration(
+                reference_image_path=ref_path,
+                calibration=calibration,
+                instructions=self.instructions_edit.toPlainText().strip(),
+                continuous=self.continuous_checkbox.isChecked(),
+                on_iteration_updated=on_iteration_updated,
+                on_log=on_log,
+            )
+
         except Exception as exc:
             self.logger.exception("Iteration failed")
-            QtCore.QMetaObject.invokeMethod(
+            QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
                 self,
                 "_show_error",
-                QtCore.Qt.QueuedConnection,
+                QtCore.Qt.ConnectionType.QueuedConnection,
                 QtCore.Q_ARG(str, str(exc)),
             )
         finally:
-            QtCore.QMetaObject.invokeMethod(
+            QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
                 self,
                 "_finish_iteration",
-                QtCore.Qt.QueuedConnection,
+                QtCore.Qt.ConnectionType.QueuedConnection,
             )
 
     @QtCore.Slot(int, str, object, str, str)
@@ -869,7 +794,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.progress_bar.setValue(int(float(similarity) * 100))
         qimage = self._to_qimage(image)
         pixmap = QtGui.QPixmap.fromImage(qimage)
-        scaled = pixmap.scaled(self.thumbnail_label.size(), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+        scaled = pixmap.scaled(
+            self.thumbnail_label.size(),
+            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
+            QtCore.Qt.TransformationMode.SmoothTransformation,
+        )
         self.thumbnail_label.setPixmap(scaled)
         self._append_log(log)
         if summary:
@@ -882,13 +811,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 raise ValueError("Unsupported image payload for preview.")
             width, height = size
             buffer = bytes(data)
-            qimage = QtGui.QImage(buffer, width, height, width * 3, QtGui.QImage.Format_RGB888)
+            qimage = QtGui.QImage(buffer, width, height, width * 3, QtGui.QImage.Format.Format_RGB888)
             return qimage.copy()
         if isinstance(image, Image.Image):
             if image.mode != "RGB":
                 image = image.convert("RGB")
             data = image.tobytes()
-            qimage = QtGui.QImage(data, image.width, image.height, image.width * 3, QtGui.QImage.Format_RGB888)
+            qimage = QtGui.QImage(data, image.width, image.height, image.width * 3, QtGui.QImage.Format.Format_RGB888)
             return qimage.copy()
         if isinstance(image, QtGui.QImage):
             return image
@@ -926,7 +855,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.logger.info(text)
 
     def _stop(self):
-        self.executor.trigger_stop()
+        self.agent_controller.stop()
         self._append_log("Stop requested.")
         self.logger.info("Stop triggered")
         # Ensure we can re-enable UI if it was hidden
@@ -939,7 +868,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.logger.info("Global stop triggered")
 
     def _rollback(self):
-        self.executor.undo_last()
+        self.agent_controller.rollback()
         self._append_log("Rollback requested.")
         self.logger.info("Rollback requested")
 
@@ -948,43 +877,42 @@ class MainWindow(QtWidgets.QMainWindow):
         self.test_button.setEnabled(False)
         self.connection_label.setText("Testing...")
         self.connection_label.setStyleSheet("color: #FBBF24; font-weight: 600;")
-        thread = threading.Thread(target=self._run_test_connection, daemon=True)
-        thread.start()
+        self.task_queue.run(self._run_test_connection)
 
     def _run_test_connection(self):
         try:
-            response = self.llm_client.test_connection()
+            response = self.agent_controller.test_connection()
             message = response.get("choices", [{}])[0].get("message", {}).get("content", "OK")
-            QtCore.QMetaObject.invokeMethod(
+            QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
                 self,
                 "_set_test_status",
-                QtCore.Qt.QueuedConnection,
+                QtCore.Qt.ConnectionType.QueuedConnection,
                 QtCore.Q_ARG(str, f"OK: {message}"),
             )
-            QtCore.QMetaObject.invokeMethod(
+            QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
                 self,
                 "_show_info",
-                QtCore.Qt.QueuedConnection,
+                QtCore.Qt.ConnectionType.QueuedConnection,
                 QtCore.Q_ARG(str, f"Test connection status: {message}"),
             )
         except Exception as exc:
-            QtCore.QMetaObject.invokeMethod(
+            QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
                 self,
                 "_set_test_status",
-                QtCore.Qt.QueuedConnection,
+                QtCore.Qt.ConnectionType.QueuedConnection,
                 QtCore.Q_ARG(str, f"Failed: {exc}"),
             )
-            QtCore.QMetaObject.invokeMethod(
+            QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
                 self,
                 "_show_error",
-                QtCore.Qt.QueuedConnection,
+                QtCore.Qt.ConnectionType.QueuedConnection,
                 QtCore.Q_ARG(str, f"Test connection failed: {exc}"),
             )
         finally:
-            QtCore.QMetaObject.invokeMethod(
+            QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
                 self,
                 "_enable_test_button",
-                QtCore.Qt.QueuedConnection,
+                QtCore.Qt.ConnectionType.QueuedConnection,
             )
 
     @QtCore.Slot()
@@ -1000,31 +928,30 @@ class MainWindow(QtWidgets.QMainWindow):
     @QtCore.Slot()
     def _toggle_engine_section(self):
         expanded = self.engine_toggle.isChecked()
-        self.engine_toggle.setArrowType(QtCore.Qt.DownArrow if expanded else QtCore.Qt.RightArrow)
+        self.engine_toggle.setArrowType(QtCore.Qt.ArrowType.DownArrow if expanded else QtCore.Qt.ArrowType.RightArrow)
         self.engine_content.setVisible(expanded)
 
     def _refresh_models(self):
         self._save_settings()
         self.refresh_models_button.setEnabled(False)
-        thread = threading.Thread(target=self._run_refresh_models, daemon=True)
-        thread.start()
+        self.task_queue.run(self._run_refresh_models)
 
     def _run_refresh_models(self):
         try:
-            models = self.llm_client.list_models()
+            models = self.agent_controller.list_models()
             self.models_refreshed.emit(models)
         except Exception as exc:
-            QtCore.QMetaObject.invokeMethod(
+            QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
                 self,
                 "_show_error",
-                QtCore.Qt.QueuedConnection,
+                QtCore.Qt.ConnectionType.QueuedConnection,
                 QtCore.Q_ARG(str, f"Model refresh failed: {exc}"),
             )
         finally:
-            QtCore.QMetaObject.invokeMethod(
+            QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
                 self,
                 "_enable_refresh_models",
-                QtCore.Qt.QueuedConnection,
+                QtCore.Qt.ConnectionType.QueuedConnection,
             )
 
     @QtCore.Slot(list)
@@ -1053,8 +980,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Disable button and run in background to keep UI responsive
         self._append_log("Starting Controller Test Suite...")
         self.run_tests_button.setEnabled(False)
-        thread = threading.Thread(target=self._run_tests_thread, daemon=True)
-        thread.start()
+        self.task_queue.run(self._run_tests_thread)
 
     def _run_tests_thread(self):
         try:
@@ -1062,57 +988,63 @@ class MainWindow(QtWidgets.QMainWindow):
             script = root / "tests" / "test_controllers_median.py"
             env = os.environ.copy()
             env["PYTHONPATH"] = str(root)
+            env["AGENT_E2E"] = "1"
             self.logger.info("Launching test suite: %s", script)
-            proc = subprocess.Popen([
-                "python",
-                "-u",
-                str(script)
-            ], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=str(root), env=env)
+            proc = subprocess.Popen(
+                ["python", "-u", str(script)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                cwd=str(root),
+                env=env,
+            )
             if proc.stdout is not None:
                 for line in proc.stdout:
-                    QtCore.QMetaObject.invokeMethod(
+                    QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
                         self,
                         "_append_log_plain",
-                        QtCore.Qt.QueuedConnection,
-                        QtCore.Q_ARG(str, line.rstrip())
+                        QtCore.Qt.ConnectionType.QueuedConnection,
+                        QtCore.Q_ARG(str, line.rstrip()),
                     )
             code = proc.wait()
             if code == 0:
                 msg = "Controller Tests PASSED"
-                icon = int(QtWidgets.QMessageBox.Information.value)
+                icon = QtWidgets.QMessageBox.Icon.Information
             elif code == 2:
                 msg = "Recalibration suggested."
-                icon = int(QtWidgets.QMessageBox.Warning.value)
+                icon = QtWidgets.QMessageBox.Icon.Warning
                 # Trigger recalibration
-                QtCore.QMetaObject.invokeMethod(self, "_calibrate_controllers", QtCore.Qt.QueuedConnection)
+                QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
+                    self, "_calibrate_controllers", QtCore.Qt.ConnectionType.QueuedConnection
+                )
             else:
                 msg = f"Controller Tests FAILED (exit={code})"
-                icon = int(QtWidgets.QMessageBox.Critical.value)
+                icon = QtWidgets.QMessageBox.Icon.Critical
 
-            QtCore.QMetaObject.invokeMethod(
+            QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
                 self,
                 "_show_message",
-                QtCore.Qt.QueuedConnection,
+                QtCore.Qt.ConnectionType.QueuedConnection,
                 QtCore.Q_ARG(str, msg),
-                QtCore.Q_ARG(int, icon)
+                QtCore.Q_ARG(object, icon),
             )
         except Exception as exc:
-            QtCore.QMetaObject.invokeMethod(
+            QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
                 self,
                 "_show_error",
-                QtCore.Qt.QueuedConnection,
-                QtCore.Q_ARG(str, f"Failed to run tests: {exc}")
+                QtCore.Qt.ConnectionType.QueuedConnection,
+                QtCore.Q_ARG(str, f"Failed to run tests: {exc}"),
             )
         finally:
-            QtCore.QMetaObject.invokeMethod(
+            QtCore.QMetaObject.invokeMethod(  # type: ignore[call-overload]
                 self,
                 "_enable_run_tests_button",
-                QtCore.Qt.QueuedConnection,
+                QtCore.Qt.ConnectionType.QueuedConnection,
             )
 
-    @QtCore.Slot(str, int)
+    @QtCore.Slot(str, object)
     def _show_message(self, text, icon_type):
-        msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon(icon_type), "Test Result", text, parent=self)
+        msg = QtWidgets.QMessageBox(icon_type, "Test Result", text, parent=self)
         msg.setStyleSheet(self.styleSheet())
         msg.exec()
 
@@ -1121,9 +1053,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.run_tests_button.setEnabled(True)
 
 
-def run_app():
+def run_app(window: MainWindow):
     app = QtWidgets.QApplication([])
-    window = MainWindow()
     window.resize(700, 620)
     window.show()
     app.exec()

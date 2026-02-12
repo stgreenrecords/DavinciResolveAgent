@@ -4,20 +4,20 @@ from pathlib import Path
 from PIL import Image
 from PySide6 import QtGui
 
+from config.paths import SESSIONS_DIR
+
 
 class SessionLogger:
+    """Writes per-session artifacts (images, metrics, responses) to disk."""
+
     def __init__(self):
-        self.root = Path(__file__).resolve().parent.parent / "sessions"
+        self.root = SESSIONS_DIR
         self.root.mkdir(parents=True, exist_ok=True)
         self.session_dir = self.root / f"session_{self._timestamp()}"
         self.session_dir.mkdir(parents=True, exist_ok=True)
 
     def log_session_info(self, settings_dict: dict, calibration_dict: dict):
-        info = {
-            "settings": settings_dict,
-            "calibration": calibration_dict,
-            "timestamp": self._timestamp()
-        }
+        info = {"settings": settings_dict, "calibration": calibration_dict, "timestamp": self._timestamp()}
         (self.session_dir / "session_info.json").write_text(json.dumps(info, indent=2))
 
     def log_iteration(self, idx, before_image, after_image, metrics, response):
@@ -33,7 +33,7 @@ class SessionLogger:
         iter_dir.mkdir(parents=True, exist_ok=True)
         actions_dir = iter_dir / "actions"
         actions_dir.mkdir(parents=True, exist_ok=True)
-        
+
         safe_phase = phase if phase in ("before", "after") else "before"
         path = actions_dir / f"action_{action_idx:02d}_{action_type}_{safe_phase}.png"
         self._save_image(path, image)

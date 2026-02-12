@@ -1,4 +1,15 @@
-from app_ui.main_window import run_app
+from PySide6 import QtWidgets
+
+from app_ui.main_window import MainWindow
+from automation.executor import ActionExecutor
+from config.paths import LOG_DIR
+from controllers.agent_controller import AgentController
+from controllers.calibration_manager import CalibrationManager
+from controllers.iteration_runner import IterationRunner
+from controllers.settings_manager import SettingsManager
+from controllers.task_queue import TaskQueue
+from llm.client import LlmClient
+from storage.settings import SettingsStore
 
 
 class _StreamToLogger:
@@ -21,12 +32,9 @@ def _install_exception_hooks():
     import sys
     import threading
     import traceback
-    from pathlib import Path
 
-    project_root = Path(__file__).resolve().parent
-    log_dir = project_root / "logs"
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_path = log_dir / "app.log"
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    log_path = LOG_DIR / "app.log"
 
     logging.basicConfig(
         level=logging.INFO,
@@ -59,4 +67,16 @@ def _install_exception_hooks():
 
 if __name__ == "__main__":
     _install_exception_hooks()
-    run_app()
+    app = QtWidgets.QApplication([])
+    settings_store = SettingsStore()
+    settings_manager = SettingsManager(settings_store)
+    executor = ActionExecutor(lambda: None)
+    llm_client = LlmClient(settings_store)
+    iteration_runner = IterationRunner(executor, llm_client)
+    agent_controller = AgentController(executor, llm_client, iteration_runner)
+    calibration_manager = CalibrationManager(settings_store)
+    task_queue = TaskQueue()
+    window = MainWindow(settings_manager, calibration_manager, agent_controller, task_queue)
+    window.resize(700, 620)
+    window.show()
+    app.exec()
